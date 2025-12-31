@@ -1,14 +1,17 @@
-import React from 'react'
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor'
 import { getCurrentStudents } from '@/data/students'
 import NewDailyReportForm from '@/components/forms/NewDailyReportForm'
+import ContentHeader from '@/components/layout/ContentHeader'
 
-const newReportPage = async () => {
+const NewReportPage = async () => {
   const students = await getCurrentStudents()
+
   return (
-    <div>
-      <NewDailyReportForm students={students} />
-    </div>
+    <>
+      <ContentHeader title="Buat Laporan Harian Baru" prevPath="/dashboard" />
+      <div>
+        <NewDailyReportForm students={students} />
+      </div>
+    </>
     // <div className="w-[500px] max-w-full h-[250px]">
     //   <SimpleEditor
     //     onChangeHandler={(html: string) => {
@@ -19,4 +22,4 @@ const newReportPage = async () => {
   )
 }
 
-export default newReportPage
+export default NewReportPage
