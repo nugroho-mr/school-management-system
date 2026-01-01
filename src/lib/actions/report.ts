@@ -20,7 +20,9 @@ const studentSlug = Students.slug as CollectionSlug
 export const submitDailyStudentReport = async (
   reportData: DailyReport,
   isSavingDraft: boolean = false,
+  reportId?: string,
 ): Promise<ActionState> => {
+  console.log('REPORT ID 1', reportId)
   try {
     const user = await getCurrentUser()
     if (!user) return { ok: false, message: 'Pengguna tidak terotentikasi' }
@@ -31,28 +33,33 @@ export const submitDailyStudentReport = async (
     const date = String(reportData.date || '')
     const note = String(reportData.note || '')
     const reportType = String(reportData.reportType || '')
-    const photoFile = reportData.photo as File | null
+    const photoFile = (reportData.photo as File | null) ?? null
+    const removePhoto = reportData.removePhoto
 
     if (!isSavingDraft) {
-      const existingReport = await payload.find({
-        collection: dailyReportSlug,
-        limit: 1,
-        where: {
-          student: { equals: String(reportData.student || '') },
-          date: { equals: String(reportData.date || '') },
-          reportType: { equals: String(reportData.reportType || '') },
-        },
-      })
+      if (!reportId) {
+        console.log('REPORT ID 2', reportId)
 
-      if (existingReport.totalDocs > 0) {
-        const student = (await payload.findByID({
-          collection: studentSlug,
-          id: reportData.student,
-          depth: 5,
-        })) as Student
-        return {
-          ok: false,
-          message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${dayjs(reportData.date).locale('id-ID').format('DD MMMM YYYY')} sudah ada.`,
+        const existingReport = await payload.find({
+          collection: dailyReportSlug,
+          limit: 1,
+          where: {
+            student: { equals: String(reportData.student || '') },
+            date: { equals: String(reportData.date || '') },
+            reportType: { equals: String(reportData.reportType || '') },
+          },
+        })
+
+        if (existingReport.totalDocs > 0) {
+          const student = (await payload.findByID({
+            collection: studentSlug,
+            id: reportData.student,
+            depth: 5,
+          })) as Student
+          return {
+            ok: false,
+            message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${dayjs(reportData.date).locale('id-ID').format('DD MMMM YYYY')} sudah ada.`,
+          }
         }
       }
 
@@ -61,7 +68,7 @@ export const submitDailyStudentReport = async (
       }
     }
 
-    let photoId: string | undefined
+    let newPhotoId: string | undefined
 
     if (photoFile && photoFile.size > 0) {
       // Convert Web File -> Buffer
@@ -83,28 +90,40 @@ export const submitDailyStudentReport = async (
         user,
       })
 
-      photoId = String(createdMedia.id)
+      newPhotoId = String(createdMedia.id)
 
-      if (!photoId) {
+      if (!newPhotoId) {
         return { ok: false, message: 'Gagal mengunggah foto' }
       }
     }
 
-    const createdReport = await payload.create({
-      collection: DailyReports.slug as CollectionSlug,
-      data: {
-        student,
-        date,
-        note,
-        reportType,
-        ...(photoId ? { photo: photoId } : {}),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-      user,
-      ...(isSavingDraft ? { draft: true } : {}),
-    })
+    const photoPatch = newPhotoId ? { photo: newPhotoId } : removePhoto ? { photo: null } : {}
 
-    return { ok: true, id: String(createdReport.id) }
+    const data = {
+      student,
+      date,
+      note,
+      reportType,
+      ...photoPatch,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    const result = reportId
+      ? await payload.update({
+          collection: DailyReports.slug as CollectionSlug,
+          id: reportId,
+          data,
+          user,
+          ...(isSavingDraft ? { draft: true } : {}),
+        })
+      : await payload.create({
+          collection: DailyReports.slug as CollectionSlug,
+          data,
+          user,
+          ...(isSavingDraft ? { draft: true } : {}),
+        })
+
+    return { ok: true, id: String(result.id) }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return { ok: false, message }

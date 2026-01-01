@@ -1,15 +1,12 @@
-import { getCurrentStudents } from '@/data/students'
-import NewDailyReportForm from '@/components/forms/NewDailyReportForm'
+import DailyReportForm from '@/components/forms/dailyReportForm/DailyReportForm'
 import ContentHeader from '@/components/layout/ContentHeader'
 
-const NewReportPage = async () => {
-  const students = await getCurrentStudents()
-
+const NewReportPage = () => {
   return (
     <>
       <ContentHeader title="Buat Laporan Harian Baru" prevPath="/dashboard" />
       <div>
-        <NewDailyReportForm students={students} />
+        <DailyReportForm />
       </div>
     </>
     // <div className="w-[500px] max-w-full h-[250px]">
