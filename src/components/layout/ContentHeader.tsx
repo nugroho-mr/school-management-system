@@ -14,7 +14,7 @@ const ContentHeader = ({
   badges?: {
     title: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    props: { [key: string]: any }
+    props?: { [key: string]: any }
   }[]
   prevPath?: string
 }) => {
