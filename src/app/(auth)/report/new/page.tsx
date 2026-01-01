@@ -4,7 +4,7 @@ import ContentHeader from '@/components/layout/ContentHeader'
 const NewReportPage = () => {
   return (
     <>
-      <ContentHeader title="Buat Laporan Harian Baru" prevPath="/dashboard" />
+      <ContentHeader title="Buat Laporan Harian Baru" prevPath="/report" />
       <div>
         <DailyReportForm />
       </div>

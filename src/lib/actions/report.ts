@@ -9,6 +9,8 @@ import { CollectionSlug } from 'payload'
 import { Students } from '@/collections/Students'
 import { Student } from '@/payload-types'
 import dayjs from 'dayjs'
+import { subDays } from 'date-fns'
+import { weekRangeInclusiveStartExclusiveEnd } from '@/lib/date'
 
 export type DailyReport = z.infer<typeof dailyReportSchema>
 
@@ -22,7 +24,6 @@ export const submitDailyStudentReport = async (
   isSavingDraft: boolean = false,
   reportId?: string,
 ): Promise<ActionState> => {
-  console.log('REPORT ID 1', reportId)
   try {
     const user = await getCurrentUser()
     if (!user) return { ok: false, message: 'Pengguna tidak terotentikasi' }
@@ -37,29 +38,28 @@ export const submitDailyStudentReport = async (
     const removePhoto = reportData.removePhoto
 
     if (!isSavingDraft) {
-      if (!reportId) {
-        console.log('REPORT ID 2', reportId)
-
-        const existingReport = await payload.find({
-          collection: dailyReportSlug,
-          limit: 1,
-          where: {
-            student: { equals: String(reportData.student || '') },
-            date: { equals: String(reportData.date || '') },
-            reportType: { equals: String(reportData.reportType || '') },
+      const existingReport = await payload.find({
+        collection: dailyReportSlug,
+        limit: 1,
+        where: {
+          student: { equals: String(reportData.student || '') },
+          date: { equals: String(reportData.date || '') },
+          reportType: { equals: String(reportData.reportType || '') },
+          id: {
+            not_equals: reportId,
           },
-        })
+        },
+      })
 
-        if (existingReport.totalDocs > 0) {
-          const student = (await payload.findByID({
-            collection: studentSlug,
-            id: reportData.student,
-            depth: 5,
-          })) as Student
-          return {
-            ok: false,
-            message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${dayjs(reportData.date).locale('id-ID').format('DD MMMM YYYY')} sudah ada.`,
-          }
+      if (existingReport.totalDocs > 0) {
+        const student = (await payload.findByID({
+          collection: studentSlug,
+          id: reportData.student,
+          depth: 5,
+        })) as Student
+        return {
+          ok: false,
+          message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${dayjs(reportData.date).locale('id-ID').format('DD MMMM YYYY')} sudah ada.`,
         }
       }
 
@@ -104,6 +104,7 @@ export const submitDailyStudentReport = async (
       date,
       note,
       reportType,
+      _status: isSavingDraft ? 'draft' : 'published',
       ...photoPatch,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
@@ -114,7 +115,7 @@ export const submitDailyStudentReport = async (
           id: reportId,
           data,
           user,
-          ...(isSavingDraft ? { draft: true } : {}),
+          // ...(isSavingDraft ? { draft: true } : {}),
         })
       : await payload.create({
           collection: DailyReports.slug as CollectionSlug,
@@ -127,5 +128,79 @@ export const submitDailyStudentReport = async (
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return { ok: false, message }
+  }
+}
+
+type FetchWeekArgs = {
+  startISO: string
+  endExclusiveISO: string
+  limit?: number
+}
+
+export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: DailyReports.slug as CollectionSlug,
+    limit: args.limit ?? 9999,
+    sort: ['-date'],
+    where: {
+      and: [
+        {
+          date: {
+            greater_than_equal: args.startISO,
+          },
+        },
+        {
+          date: {
+            less_than: args.endExclusiveISO,
+          },
+        },
+      ],
+    },
+    depth: 3,
+  })
+
+  return {
+    docs: res.docs as unknown as DailyReport[],
+    totalDocs: res.totalDocs,
+  }
+}
+
+export const hasReportOlderThan = async (oldestDateExclusiveISO: string) => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'daily-reports',
+    limit: 1,
+    sort: '-date',
+    where: { date: { less_than: oldestDateExclusiveISO } },
+  })
+
+  return res.docs.length > 0
+}
+
+export async function loadMoreWeek(oldestLoadedMondayISO: string) {
+  // oldestLoadedMondayISO is the Monday (start-of-week) of the current oldest week in the UI
+  const currentOldestMonday = new Date(oldestLoadedMondayISO)
+
+  const prevWeekEndInclusive = subDays(currentOldestMonday, 1) // Sunday
+  const prevWeekStartInclusive = subDays(currentOldestMonday, 7) // previous Monday
+
+  const { start, endExclusive } = weekRangeInclusiveStartExclusiveEnd(
+    prevWeekStartInclusive,
+    prevWeekEndInclusive,
+  )
+
+  const data = await fetchDailyReportsInRange({
+    startISO: start.toISOString(),
+    endExclusiveISO: endExclusive.toISOString(),
+  })
+
+  // “older than” means older than prevWeekStart (exclusive)
+  const showLoadMore = await hasReportOlderThan(start.toISOString())
+
+  return {
+    docs: data.docs,
+    prevWeekMondayISO: start.toISOString(),
+    showLoadMore,
   }
 }

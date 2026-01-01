@@ -32,6 +32,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { useRouter } from 'next/navigation'
 
 type FormValues = z.infer<typeof dailyReportSchema>
 
@@ -58,6 +59,7 @@ export const ReportForm = ({
   students: Student[]
   defaultValues?: DailyReport
 }) => {
+  const router = useRouter()
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const [selectedStudentName, setSelectedStudentName] = useState<string>('')
@@ -67,7 +69,11 @@ export const ReportForm = ({
 
   useEffect(() => {
     setSelectedStudentName(() => {
-      const currentStudent = students.find((student) => student.id === defaultValues?.student.id)
+      const studentId =
+        typeof defaultValues?.student === 'object'
+          ? defaultValues.student?.id
+          : defaultValues?.student
+      const currentStudent = students.find((student) => student.id === studentId)
       return currentStudent?.fullname || ''
     })
   }, [])
@@ -98,9 +104,19 @@ export const ReportForm = ({
     const currentData = getValues()
     try {
       const res = await submitDailyStudentReport(currentData, true, defaultValues?.id)
-      console.log(res)
+      if (!res.ok) {
+        toast.error(res.message)
+        return
+      }
+      toast.success('Berhasil mengimpan laporan sebagai draf.')
+      if (defaultValues?.id) {
+        router.refresh()
+      } else {
+        router.push(`/report/${res.id}`)
+      }
     } catch (error) {
-      console.error('Error submitting form:', error)
+      toast.error('Maaf ada masalah dalam menyimpan laporan. Cobalah beberapa saat lagi.')
+      console.error('Error submitting report: ', error)
     }
   }
 
@@ -118,13 +134,19 @@ export const ReportForm = ({
 
       if (!res.ok) {
         toast.error(res.message)
+        return
       }
 
-      console.log('Submit report response:', res)
+      toast.success('Laporan siswa berhasil diterbitkan.')
+      setConfirmationOpen(false)
+      if (defaultValues?.id) {
+        router.refresh()
+      } else {
+        router.push(`/report/${res.id}`)
+      }
     } catch (error) {
-      console.error('Error submitting form:', error)
-    } finally {
-      console.log('Form submission completed')
+      toast.error('Maaf ada masalah dalam menyimpan laporan. Cobalah beberapa saat lagi.')
+      console.error('Error submitting report: ', error)
     }
   }
 
@@ -299,7 +321,7 @@ export const ReportForm = ({
       <ul className="flex flex-col mt-10 gap-3 sm:flex-row sm:justify-end">
         <li className="sm:order-2">
           <Button type="button" onClick={openConfirmationDialog} className="w-full sm:w-unset">
-            Simpan
+            {defaultValues?.id && defaultValues?._status === 'published' ? 'Perbarui' : 'Terbitkan'}
           </Button>
         </li>
         <li className="sm:order-1">
@@ -309,7 +331,7 @@ export const ReportForm = ({
             onClick={handleSaveDraft}
             className="w-full sm:w-unset"
           >
-            Simpan sebagai draft
+            {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
           </Button>
         </li>
       </ul>
@@ -339,10 +361,10 @@ export const ReportForm = ({
         </ul>
         <DialogFooter>
           <Button variant="outline" onClick={handleSaveDraft}>
-            Simpan sebagai draf
+            {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
           </Button>
           <Button type="submit" form="new-daily-report-form">
-            Simpan
+            {defaultValues?.id && defaultValues?._status === 'published' ? 'Perbarui' : 'Terbitkan'}
           </Button>
         </DialogFooter>
       </DialogContent>

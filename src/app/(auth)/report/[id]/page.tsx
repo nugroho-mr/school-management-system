@@ -20,7 +20,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
       ? {
           title: 'DRAFT',
           props: {
-            className: 'text-black bg-yellow-400 border-yellow-600',
+            className: 'text-black bg-yellow-200 border-yellow-400 font-bold text-yellow-500',
           },
         }
       : {
@@ -29,7 +29,7 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
-      <ContentHeader title="Laporan Harian Siswa" prevPath="/dashboard" badges={[statusBadge]} />
+      <ContentHeader title="Laporan Harian Siswa" prevPath="/report" badges={[statusBadge]} />
       <div>
         <DailyReportForm curReport={report} />
       </div>

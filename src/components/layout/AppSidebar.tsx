@@ -10,9 +10,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { CiViewList } from 'react-icons/ci'
 
 import { Calendar, Home, Inbox, Search, Settings } from 'lucide-react'
+import Link from 'next/link'
 
+const reportItems = [
+  {
+    title: 'Laporan Harian',
+    url: '/report',
+    icon: CiViewList,
+  },
+]
 const items = [
   {
     title: 'Home',
@@ -46,6 +55,23 @@ const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
     <Sidebar {...props}>
       <SidebarHeader />
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Laporan</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url} className="no-underline">
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>

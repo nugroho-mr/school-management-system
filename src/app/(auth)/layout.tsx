@@ -21,12 +21,6 @@ const authLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en" className="scroll-smooth">
       <body className="antialiased">
-        {user && (
-          <header>
-            {`Welcome, ${user.name ? user.name : 'username' in user ? user.username : user.email}`}{' '}
-            | <LogoutButton />
-          </header>
-        )}
         <Toaster position="top-center" richColors={true} expand={true} />
         <SidebarProvider defaultOpen={defaultSidebarOpen}>
           <AppSidebar />
@@ -37,6 +31,12 @@ const authLayout = async ({ children }: { children: React.ReactNode }) => {
                 orientation="vertical"
                 className="h-full border-r border-solid border-border"
               />
+              <div className="grow"></div>
+              {user && (
+                <div className="text-sm hidden mr-4 md:block">
+                  {`Halo, ${user.name ? user.name : 'username' in user ? user.username : user.email}`}{' '}
+                </div>
+              )}
             </header>
             <main>
               <div className="px-4 py-6 max-w-[1080px] w-full md:px-10 md:pb-12">{children}</div>
