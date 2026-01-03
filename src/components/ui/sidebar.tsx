@@ -247,7 +247,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar, state } = useSidebar()
+  const { toggleSidebar, state, isMobile } = useSidebar()
 
   return (
     <Button
@@ -262,10 +262,10 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       }}
       {...props}
     >
-      {state == 'expanded' ? (
-        <GoSidebarExpand className="text-2xl" />
-      ) : (
+      {state == 'collapsed' || isMobile ? (
         <GoSidebarCollapse className="text-2xl" />
+      ) : (
+        <GoSidebarExpand className="text-2xl" />
       )}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>

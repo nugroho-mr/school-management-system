@@ -66,45 +66,47 @@ const LoginPage = () => {
             </Alert>
           )}
           <form id="login-form" onSubmit={loginForm.handleSubmit(onSubmit)}>
-            <Controller
-              name="identifier"
-              control={loginForm.control}
-              render={({ field, fieldState }) => {
-                return (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="identifier">Username</FieldLabel>
-                    <Input
-                      {...field}
-                      id="identifier"
-                      placeholder="username"
-                      autoComplete="off"
-                      disabled={isPending}
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )
-              }}
-            />
-            <Controller
-              name="password"
-              control={loginForm.control}
-              render={({ field, fieldState }) => {
-                return (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      type="password"
-                      {...field}
-                      id="password"
-                      placeholder="password"
-                      autoComplete="off"
-                      disabled={isPending}
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )
-              }}
-            />
+            <div className="space-y-4">
+              <Controller
+                name="identifier"
+                control={loginForm.control}
+                render={({ field, fieldState }) => {
+                  return (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="identifier">Username</FieldLabel>
+                      <Input
+                        {...field}
+                        id="identifier"
+                        placeholder="username"
+                        autoComplete="off"
+                        disabled={isPending}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )
+                }}
+              />
+              <Controller
+                name="password"
+                control={loginForm.control}
+                render={({ field, fieldState }) => {
+                  return (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="password">Password</FieldLabel>
+                      <Input
+                        type="password"
+                        {...field}
+                        id="password"
+                        placeholder="password"
+                        autoComplete="off"
+                        disabled={isPending}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )
+                }}
+              />
+            </div>
           </form>
         </CardContent>
         <CardFooter>
