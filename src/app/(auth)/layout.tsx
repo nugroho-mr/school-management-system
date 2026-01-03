@@ -9,6 +9,11 @@ import './styles.css'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/layout/AppSidebar'
 import { Separator } from '@/components/ui/separator'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Crescent Wonder School Management System',
+}
 
 const authLayout = async ({ children }: { children: React.ReactNode }) => {
   const user = await getCurrentUser()

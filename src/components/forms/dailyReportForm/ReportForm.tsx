@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { dailyReportSchema } from '@/schemas/report'
@@ -167,9 +167,11 @@ export const ReportForm = ({
                       <FormControl>
                         <NativeSelect
                           value={field.value}
-                          onChange={(e) => {
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                             field.onChange(e.target.value)
-                            setSelectedStudentName(e.target.selectedOptions[0].textContent.trim())
+                            setSelectedStudentName(
+                              e?.target?.selectedOptions[0]?.textContent?.trim() ?? '',
+                            )
                           }}
                         >
                           <NativeSelectOption value="">-- pilih siswa --</NativeSelectOption>
