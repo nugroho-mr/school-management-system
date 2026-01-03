@@ -15,6 +15,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/', // The incoming path pattern
+        destination: '/dashboard', // The path you want to route to
+        permanent: false, // Use 308 for permanent, 307 for temporary
+      },
+      // You can add more redirect objects here
+    ]
+  },
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

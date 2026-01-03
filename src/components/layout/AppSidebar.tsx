@@ -13,6 +13,7 @@ import {
 import { CiViewList } from 'react-icons/ci'
 
 import Link from 'next/link'
+import LogoutButton from './LogoutButton'
 
 const reportItems = [
   {
@@ -45,7 +46,9 @@ const AppSidebar = ({ ...props }: React.ComponentProps<typeof Sidebar>) => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter>
+        <LogoutButton className="w-full" />
+      </SidebarFooter>
     </Sidebar>
   )
 }
