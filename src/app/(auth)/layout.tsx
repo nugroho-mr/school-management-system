@@ -21,7 +21,7 @@ const authLayout = async ({ children }: { children: React.ReactNode }) => {
   const defaultSidebarOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   // Go to login if no user
-  // if (!user) redirect('/auth/login')
+  if (!user) redirect('/auth/login')
 
   return (
     <html lang="en" className="scroll-smooth">
