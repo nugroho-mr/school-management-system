@@ -30,9 +30,9 @@ const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <>
       <ContentHeader title="Laporan Harian Siswa" prevPath="/report" badges={[statusBadge]} />
-      <div>
+      <section>
         <DailyReportForm curReport={report} />
-      </div>
+      </section>
     </>
   )
 }

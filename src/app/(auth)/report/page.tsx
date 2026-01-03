@@ -1,6 +1,5 @@
 import ContentHeader from '@/components/layout/ContentHeader'
-import { Button } from '@/components/ui/button'
-import clsx from 'clsx'
+
 import {
   Empty,
   EmptyHeader,
@@ -54,11 +53,14 @@ const DailyReportPage = async () => {
   return (
     <>
       <ContentHeader title="Laporan Harian" prevPath="/dashboard" />
-      <DailyReportList
-        initialDocs={initial.docs as unknown as DailyReport[]}
-        initialOldestMondayISO={start.toISOString()}
-        initialShowLoadMore={showLoadMore}
-      />
+
+      <section>
+        <DailyReportList
+          initialDocs={initial.docs as unknown as DailyReport[]}
+          initialOldestMondayISO={start.toISOString()}
+          initialShowLoadMore={showLoadMore}
+        />
+      </section>
     </>
   )
 }

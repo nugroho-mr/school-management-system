@@ -5,17 +5,10 @@ const NewReportPage = () => {
   return (
     <>
       <ContentHeader title="Buat Laporan Harian Baru" prevPath="/report" />
-      <div>
+      <section>
         <DailyReportForm />
-      </div>
+      </section>
     </>
-    // <div className="w-[500px] max-w-full h-[250px]">
-    //   <SimpleEditor
-    //     onChangeHandler={(html: string) => {
-    //       console.log(html)
-    //     }}
-    //   />
-    // </div>
   )
 }
 
