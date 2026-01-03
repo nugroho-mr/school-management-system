@@ -12,6 +12,9 @@ const nextConfig = {
 
     return webpackConfig
   },
+  images: {
+    unoptimized: true,
+  },
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

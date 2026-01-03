@@ -1,4 +1,10 @@
 import { CollectionConfig, CollectionSlug } from 'payload'
+import {
+  deleteOldPhotoOnPublish,
+  setCreatedBy,
+  validateDateNotInFuture,
+  validateUniquePublishedReport,
+} from './hooks/dailyReport'
 
 export const DailyReports: CollectionConfig = {
   slug: 'daily-reports',
@@ -86,44 +92,7 @@ export const DailyReports: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [
-      async ({ data, req }) => {
-        if (!req.user) throw new Error('Anda tidak memiliki otorisasi')
-        data.createdBy = {
-          relationTo: req.user.collection,
-          value: req.user.id,
-        }
-
-        // if (data._status === 'published') {
-        const hasExistingReport = await req.payload.find({
-          collection: DailyReports.slug as CollectionSlug,
-          where: {
-            student: { equals: data.student },
-            date: { equals: data.date },
-            reportType: { equals: data.reportType },
-            _status: { equals: 'published' },
-          },
-          limit: 1,
-          draft: true,
-        })
-
-        if (hasExistingReport.totalDocs > 0) {
-          throw new Error(
-            `Laporan ${data.reportType} untuk siswa ini pada tanggal tersebut sudah ada`,
-          )
-        }
-        // }
-
-        if (data?.date) {
-          const dateSubmitted = new Date(data.date)
-          const today = new Date()
-          today.setHours(23, 59, 59, 999)
-          if (dateSubmitted.getTime() > today.getTime()) {
-            throw new Error('Tanggal laporan tidak boleh lebih dari hari ini')
-          }
-        }
-        return data
-      },
-    ],
+    beforeChange: [setCreatedBy, validateDateNotInFuture, validateUniquePublishedReport],
+    afterChange: [deleteOldPhotoOnPublish],
   },
 }

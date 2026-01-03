@@ -10,9 +10,13 @@ import { Students } from '@/collections/Students'
 import { Student } from '@/payload-types'
 import dayjs from 'dayjs'
 
-export type DailyReport = z.infer<typeof dailyReportSchema>
-
-export type ActionState = { ok: true; id: string } | { ok: false; message: string }
+type DailyReport = z.infer<typeof dailyReportSchema>
+type ActionState = { ok: true; id: string } | { ok: false; message: string }
+type FetchWeekArgs = {
+  startISO: string
+  endISO: string
+  limit?: number
+}
 
 const dailyReportSlug = DailyReports.slug as CollectionSlug
 const studentSlug = Students.slug as CollectionSlug
@@ -20,6 +24,7 @@ const studentSlug = Students.slug as CollectionSlug
 export const submitDailyStudentReport = async (
   reportData: DailyReport,
   isSavingDraft: boolean = false,
+  reportId?: string,
 ): Promise<ActionState> => {
   try {
     const user = await getCurrentUser()
@@ -31,7 +36,8 @@ export const submitDailyStudentReport = async (
     const date = String(reportData.date || '')
     const note = String(reportData.note || '')
     const reportType = String(reportData.reportType || '')
-    const photoFile = reportData.photo as File | null
+    const photoFile = (reportData.photo as File | null) ?? null
+    const removePhoto = reportData.removePhoto
 
     if (!isSavingDraft) {
       const existingReport = await payload.find({
@@ -41,6 +47,9 @@ export const submitDailyStudentReport = async (
           student: { equals: String(reportData.student || '') },
           date: { equals: String(reportData.date || '') },
           reportType: { equals: String(reportData.reportType || '') },
+          id: {
+            not_equals: reportId,
+          },
         },
       })
 
@@ -61,7 +70,7 @@ export const submitDailyStudentReport = async (
       }
     }
 
-    let photoId: string | undefined
+    let newPhotoId: string | undefined
 
     if (photoFile && photoFile.size > 0) {
       // Convert Web File -> Buffer
@@ -83,30 +92,72 @@ export const submitDailyStudentReport = async (
         user,
       })
 
-      photoId = String(createdMedia.id)
+      newPhotoId = String(createdMedia.id)
 
-      if (!photoId) {
+      if (!newPhotoId) {
         return { ok: false, message: 'Gagal mengunggah foto' }
       }
     }
 
-    const createdReport = await payload.create({
-      collection: DailyReports.slug as CollectionSlug,
-      data: {
-        student,
-        date,
-        note,
-        reportType,
-        ...(photoId ? { photo: photoId } : {}),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-      user,
-      ...(isSavingDraft ? { draft: true } : {}),
-    })
+    const photoPatch = newPhotoId ? { photo: newPhotoId } : removePhoto ? { photo: null } : {}
 
-    return { ok: true, id: String(createdReport.id) }
+    const data = {
+      student,
+      date,
+      note,
+      reportType,
+      _status: isSavingDraft ? 'draft' : 'published',
+      ...photoPatch,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    const result = reportId
+      ? await payload.update({
+          collection: DailyReports.slug as CollectionSlug,
+          id: reportId,
+          data,
+          user,
+          // ...(isSavingDraft ? { draft: true } : {}),
+        })
+      : await payload.create({
+          collection: DailyReports.slug as CollectionSlug,
+          data,
+          user,
+          ...(isSavingDraft ? { draft: true } : {}),
+        })
+
+    return { ok: true, id: String(result.id) }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return { ok: false, message }
+  }
+}
+
+export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: DailyReports.slug as CollectionSlug,
+    limit: args.limit ?? 999999,
+    sort: ['-date'],
+    where: {
+      and: [
+        {
+          date: {
+            greater_than_equal: args.startISO,
+          },
+        },
+        {
+          date: {
+            less_than_equal: args.endISO,
+          },
+        },
+      ],
+    },
+    depth: 3,
+  })
+
+  return {
+    docs: res.docs as unknown as DailyReport[],
+    totalDocs: res.totalDocs,
   }
 }

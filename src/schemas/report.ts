@@ -1,7 +1,5 @@
 import z from 'zod'
 
-const ONLY_TAGS_OR_WHITESPACE_REGEX = /^\\s*(<[^>]+>\\s*)*$/
-
 export const dailyReportSchema = z.object({
   student: z.string().min(1, 'Pilih murid terlebih dahulu'),
   reportType: z.enum(['daily', 'montessori'], {
@@ -21,15 +19,13 @@ export const dailyReportSchema = z.object({
     .min(1, 'Catatan harian harus diisi')
     .refine(
       (value) => {
-        // 1. Remove all HTML tags (including nested and self-closing tags)
-        // This regex matches anything between < and >
         const textOnly = value.replace(/<[^>]*>?/gm, '')
-
-        // 2. Trim whitespace and check if the remaining string has length
-        // Returns false if the result is "" or only spaces
         return textOnly.trim().length > 0
       },
       { message: 'Catatan harian harus diisi' },
     ),
-  photo: z.any().optional(),
+  photo: z.any().optional().nullable(),
+  photoId: z.string().optional().nullable(),
+  photoUrl: z.string().optional().nullable(),
+  removePhoto: z.boolean().catch(false),
 })
