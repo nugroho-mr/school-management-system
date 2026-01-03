@@ -33,16 +33,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
+import { dateStringISO } from '@/lib/date'
 
 type FormValues = z.infer<typeof dailyReportSchema>
-
-const dateISODateString = (date?: string): string => {
-  const today = date ? new Date(date) : new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const getMediaThumbUrl = (photo: any): string | null => {
   if (!photo) return null
@@ -82,7 +75,7 @@ export const ReportForm = ({
     resolver: zodResolver(dailyReportSchema),
     defaultValues: {
       student: typeof defaultValues?.student === 'object' ? defaultValues.student.id : '',
-      date: defaultValues?.date ? dateISODateString(defaultValues.date) : dateISODateString(),
+      date: defaultValues?.date ? dateStringISO(defaultValues.date) : dateStringISO(),
       note: defaultValues?.note || '',
       reportType: defaultValues?.reportType || 'daily',
       photo: null,
@@ -201,7 +194,7 @@ export const ReportForm = ({
                   <FormItem>
                     <FormLabel>Tanggal</FormLabel>
                     <FormControl>
-                      <Input type="date" max={dateISODateString()} {...field} />
+                      <Input type="date" max={dateStringISO()} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

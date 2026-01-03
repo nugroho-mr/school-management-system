@@ -1,14 +1,4 @@
-import { addDays, startOfDay, subDays } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
-
-const TZ = 'Asia/Jakarta'
-
-/** "Today" at start-of-day in Asia/Jakarta */
-export function jakartaTodayStart(): Date {
-  const now = new Date()
-  const zoned = toZonedTime(now, TZ)
-  return startOfDay(zoned)
-}
+import { subDays } from 'date-fns'
 
 /** Most recent Monday (including today if today is Monday) */
 export function closestPreviousMonday(d: Date): Date {
@@ -18,15 +8,10 @@ export function closestPreviousMonday(d: Date): Date {
   return subDays(d, diffToMonday)
 }
 
-/**
- * Week window that matches your UI:
- * from (monday) to (today) for initial,
- * and for load more: previous Monday..Sunday windows.
- *
- * Returns inclusive start, exclusive end.
- */
-export function weekRangeInclusiveStartExclusiveEnd(startInclusive: Date, endInclusive: Date) {
-  const start = startOfDay(startInclusive)
-  const endExclusive = addDays(startOfDay(endInclusive), 1)
-  return { start, endExclusive }
+export const dateStringISO = (date?: string): string => {
+  const today = date ? new Date(date) : new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }

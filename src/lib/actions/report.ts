@@ -9,12 +9,14 @@ import { CollectionSlug } from 'payload'
 import { Students } from '@/collections/Students'
 import { Student } from '@/payload-types'
 import dayjs from 'dayjs'
-import { subDays } from 'date-fns'
-import { weekRangeInclusiveStartExclusiveEnd } from '@/lib/date'
 
-export type DailyReport = z.infer<typeof dailyReportSchema>
-
-export type ActionState = { ok: true; id: string } | { ok: false; message: string }
+type DailyReport = z.infer<typeof dailyReportSchema>
+type ActionState = { ok: true; id: string } | { ok: false; message: string }
+type FetchWeekArgs = {
+  startISO: string
+  endISO: string
+  limit?: number
+}
 
 const dailyReportSlug = DailyReports.slug as CollectionSlug
 const studentSlug = Students.slug as CollectionSlug
@@ -131,17 +133,11 @@ export const submitDailyStudentReport = async (
   }
 }
 
-type FetchWeekArgs = {
-  startISO: string
-  endExclusiveISO: string
-  limit?: number
-}
-
 export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
   const payload = await getPayloadClient()
   const res = await payload.find({
     collection: DailyReports.slug as CollectionSlug,
-    limit: args.limit ?? 9999,
+    limit: args.limit ?? 999999,
     sort: ['-date'],
     where: {
       and: [
@@ -152,7 +148,7 @@ export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
         },
         {
           date: {
-            less_than: args.endExclusiveISO,
+            less_than_equal: args.endISO,
           },
         },
       ],
@@ -163,44 +159,5 @@ export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
   return {
     docs: res.docs as unknown as DailyReport[],
     totalDocs: res.totalDocs,
-  }
-}
-
-export const hasReportOlderThan = async (oldestDateExclusiveISO: string) => {
-  const payload = await getPayloadClient()
-  const res = await payload.find({
-    collection: 'daily-reports',
-    limit: 1,
-    sort: '-date',
-    where: { date: { less_than: oldestDateExclusiveISO } },
-  })
-
-  return res.docs.length > 0
-}
-
-export async function loadMoreWeek(oldestLoadedMondayISO: string) {
-  // oldestLoadedMondayISO is the Monday (start-of-week) of the current oldest week in the UI
-  const currentOldestMonday = new Date(oldestLoadedMondayISO)
-
-  const prevWeekEndInclusive = subDays(currentOldestMonday, 1) // Sunday
-  const prevWeekStartInclusive = subDays(currentOldestMonday, 7) // previous Monday
-
-  const { start, endExclusive } = weekRangeInclusiveStartExclusiveEnd(
-    prevWeekStartInclusive,
-    prevWeekEndInclusive,
-  )
-
-  const data = await fetchDailyReportsInRange({
-    startISO: start.toISOString(),
-    endExclusiveISO: endExclusive.toISOString(),
-  })
-
-  // “older than” means older than prevWeekStart (exclusive)
-  const showLoadMore = await hasReportOlderThan(start.toISOString())
-
-  return {
-    docs: data.docs,
-    prevWeekMondayISO: start.toISOString(),
-    showLoadMore,
   }
 }

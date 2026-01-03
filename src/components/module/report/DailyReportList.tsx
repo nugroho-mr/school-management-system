@@ -1,71 +1,167 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
+import { DailyReport } from '@/payload-types'
+import { closestPreviousMonday, dateStringISO } from '@/lib/date'
+import { DailyReportSection, groupReportsByDate } from '@/lib/report'
+import { fetchDailyReportsInRange } from '@/lib/actions/report'
+
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { FaPlus } from 'react-icons/fa6'
 import {
   Empty,
+  EmptyContent,
+  EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
 } from '@/components/ui/empty'
 import {
   Table,
-  TableHeader,
-  TableRow,
-  TableHead,
   TableBody,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
-import { DailyReportSection, groupReportsByDate } from '@/lib/report'
-import { DailyReport } from '@/payload-types'
+import { Badge } from '@/components/ui/badge'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+
 import clsx from 'clsx'
 import dayjs from 'dayjs'
-import { format } from 'path'
-import React, { useState } from 'react'
+import 'dayjs/locale/id'
+
 import { CiViewList } from 'react-icons/ci'
+import { FaPlus } from 'react-icons/fa6'
 import { FiEdit3 } from 'react-icons/fi'
+
+import Link from 'next/link'
 import Image from 'next/image'
 
-import 'dayjs/locale/id'
-import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { loadMoreWeek } from '@/lib/actions/report'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import z from 'zod'
 
-const DailyReportList = (props: {
-  initialDocs: DailyReport[]
-  initialOldestMondayISO: string
-  initialShowLoadMore: boolean
-}) => {
-  const [sections, setSections] = useState<DailyReportSection[]>(
-    groupReportsByDate(props.initialDocs),
-  )
-  const [oldestMondayISO, setOldestMondayISO] = useState(props.initialOldestMondayISO)
-  const [showLoadMore, setShowLoadMore] = useState(props.initialShowLoadMore)
-  const [loading, setLoading] = useState(false)
+const filterFormSchema = z.object({
+  startDate: z.string(),
+  endDate: z.string(),
+  student: z.string().optional(),
+  reportType: z.string().optional(),
+})
 
-  const handleLoadMore = async () => {
-    setLoading(true)
-    try {
-      const res = await loadMoreWeek(oldestMondayISO)
+const DailyReportList = () => {
+  const [sections, setSections] = useState<DailyReportSection[] | null>(null)
+  const [displayedReport, setDisplayedReport] = useState<DailyReport[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-      const newSections = groupReportsByDate(res.docs) as unknown as DailyReportSection[]
+  const getReport = async (startDate: string, endDate: string) => {
+    const initialReport = await fetchDailyReportsInRange({
+      startISO: startDate,
+      endISO: endDate,
+    })
+    setDisplayedReport(initialReport.docs as unknown as DailyReport[])
+  }
 
-      // Append to the end (older dates at bottom)
-      setSections((prev) => mergeAppendSections(prev, newSections))
-      setOldestMondayISO(res.prevWeekMondayISO)
-      setShowLoadMore(res.showLoadMore)
-    } finally {
-      setLoading(false)
-    }
+  useEffect(() => {
+    getReport(dateStringISO(closestPreviousMonday(new Date()).toDateString()), dateStringISO())
+  }, [])
+
+  useEffect(() => {
+    const groupedReport = groupReportsByDate(displayedReport)
+    setSections(groupedReport)
+  }, [displayedReport])
+
+  useEffect(() => {
+    setIsLoading(false)
+  }, [sections])
+
+  const filterForm = useForm<z.infer<typeof filterFormSchema>>({
+    resolver: zodResolver(filterFormSchema),
+    defaultValues: {
+      startDate: dateStringISO(closestPreviousMonday(new Date()).toDateString()),
+      endDate: dateStringISO(),
+      student: '',
+      reportType: '',
+    },
+  })
+
+  const startDateValue = filterForm.watch('startDate')
+
+  const filterSubmitHandler = (formData: z.infer<typeof filterFormSchema>) => {
+    setIsLoading(true)
+    getReport(formData.startDate, formData.endDate)
   }
 
   return (
     <div>
-      {sections.length === 0 ? (
+      <div className="flex flex-col-reverse gap-6 mb-10 md:flex-row md:justify-between md:items-center">
+        <div>
+          <Form {...filterForm}>
+            <form onSubmit={filterForm.handleSubmit(filterSubmitHandler)}>
+              <div className="flex flex-col gap-4 lg:flex-row md:gap-2 md:items-center">
+                <p className="text-sm text-neutral-500 md:mt-5">Filter laporan siswa</p>
+                <FormField
+                  control={filterForm.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mulai tanggal</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          max={dateStringISO()}
+                          min={dateStringISO('07-01-2025')}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={filterForm.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sampai tanggal</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} max={dateStringISO()} min={startDateValue} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div>
+                  <Button type="submit" variant="secondary" className="w-full md:w-unset md:mt-6">
+                    Filter
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </Form>
+        </div>
+        <div>
+          <Link href="/report/new">
+            <Button size="sm" className="w-full md:w-unset md:mt-6">
+              <FaPlus /> Laporan Baru
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <Separator orientation="horizontal" className="border-b border-neutral-200 mb-10" />
+      {isLoading || sections === null ? (
+        <DisplaySkeleton />
+      ) : sections.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -81,134 +177,112 @@ const DailyReportList = (props: {
           </EmptyContent>
         </Empty>
       ) : (
-        <>
-          <div className="flex flex-row-reverse mb-6">
-            <div>
-              <Link href="/report/new">
-                <Button size="sm">
-                  <FaPlus /> Laporan Baru
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <ul className="space-y-10">
-            {sections.map((section) => {
-              return (
-                <li key={section.dateKey}>
-                  <h2 className="mb-4 text-sm font-bold text-secondary-foreground">
-                    {dayjs(new Date(section.dateKey)).locale('id').format('dddd, DD MMMM YYYY')}
-                  </h2>
-                  <div className="rounded-lg border">
-                    <Table>
-                      <TableHeader className="bg-accent">
-                        <TableRow className="font-bold">
-                          <TableHead>Siswa</TableHead>
-                          <TableHead className="text-center w-[150px]">Jenis Laporan</TableHead>
-                          <TableHead className="text-center w-[70px]">Foto</TableHead>
-                          <TableHead className="text-center w-[120px]">Status</TableHead>
-                          <TableHead className="w-[70px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {section.rows.map((report) => (
-                          <TableRow
-                            key={report.id}
-                            className={clsx(
-                              report._status === 'draft' && 'bg-amber-50 hover:bg-amber-100',
+        <ul className="space-y-10">
+          {sections.map((section) => {
+            return (
+              <li key={section.dateKey}>
+                <h2 className="mb-4 text-sm font-bold text-secondary-foreground">
+                  {dayjs(new Date(section.dateKey)).locale('id').format('dddd, DD MMMM YYYY')}
+                </h2>
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader className="bg-accent">
+                      <TableRow className="font-bold">
+                        <TableHead>Siswa</TableHead>
+                        <TableHead className="text-center w-[150px]">Jenis Laporan</TableHead>
+                        <TableHead className="text-center w-[70px]">Foto</TableHead>
+                        <TableHead className="text-center w-[120px]">Status</TableHead>
+                        <TableHead className="w-[70px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {section.rows.map((report) => (
+                        <TableRow
+                          key={report.id}
+                          className={clsx(
+                            report._status === 'draft' && 'bg-amber-50 hover:bg-amber-100',
+                          )}
+                        >
+                          <TableCell>
+                            {typeof report.student === 'string'
+                              ? report.student
+                              : (report.student?.fullname ?? report.student?.id ?? '-')}
+                          </TableCell>
+                          <TableCell className="text-center font-medium">
+                            {report.reportType === 'daily' ? (
+                              <span className="text-blue-500">LGA</span>
+                            ) : report.reportType === 'montessori' ? (
+                              <span className="text-pink-500">Montessori</span>
+                            ) : (
+                              '-'
                             )}
-                          >
-                            <TableCell>
-                              {typeof report.student === 'string'
-                                ? report.student
-                                : (report.student?.fullname ?? report.student?.id ?? '-')}
-                            </TableCell>
-                            <TableCell className="text-center font-medium">
-                              {report.reportType === 'daily' ? (
-                                <span className="text-blue-500">LGA</span>
-                              ) : report.reportType === 'montessori' ? (
-                                <span className="text-pink-500">Montessori</span>
-                              ) : (
-                                '-'
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {typeof report.photo === 'object' ? (
-                                <Image
-                                  src={
-                                    report.photo?.sizes?.thumbnail?.url || report.photo?.url || '#'
-                                  }
-                                  alt="foto laporan"
-                                  width={20}
-                                  height={20}
-                                  className="object-cover aspect-square rounded-full inline-block"
-                                />
-                              ) : (
-                                '-'
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {report._status ? (
-                                <Badge
-                                  className={clsx(
-                                    'uppercase text-[10px] font-bold',
-                                    report._status === 'draft' &&
-                                      'bg-yellow-200 border-yellow-400 text-yellow-500',
-                                  )}
-                                >
-                                  {report._status === 'draft' ? 'Draft' : 'Published'}
-                                </Badge>
-                              ) : (
-                                '-'
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Link href={`/report/${report.id}`}>
-                                <Button variant="outline" size="icon-sm" title="Edit">
-                                  <FiEdit3 />
-                                </Button>
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {typeof report.photo === 'object' ? (
+                              <Image
+                                src={
+                                  report.photo?.sizes?.thumbnail?.url || report.photo?.url || '#'
+                                }
+                                alt="foto laporan"
+                                width={20}
+                                height={20}
+                                className="object-cover aspect-square rounded-full inline-block"
+                              />
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {report._status ? (
+                              <Badge
+                                className={clsx(
+                                  'uppercase text-[10px] font-bold',
+                                  report._status === 'draft' &&
+                                    'bg-yellow-200 border-yellow-400 text-yellow-500',
+                                )}
+                              >
+                                {report._status === 'draft' ? 'Draft' : 'Published'}
+                              </Badge>
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Link href={`/report/${report.id}`}>
+                              <Button variant="outline" size="icon-sm" title="Edit">
+                                <FiEdit3 />
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       )}
-      {showLoadMore ? (
-        <div className="flex justify-center pt-2">
-          <Button onClick={handleLoadMore} disabled={loading}>
-            {loading ? 'Loading...' : 'Load more'}
-          </Button>
-        </div>
-      ) : null}
     </div>
   )
 }
 
-const mergeAppendSections = (current: DailyReportSection[], incoming: DailyReportSection[]) => {
-  if (incoming.length === 0) return current
-
-  const map = new Map<string, DailyReport[]>()
-  for (const s of current) map.set(s.dateKey, s.rows)
-
-  for (const s of incoming) {
-    const existing = map.get(s.dateKey)
-    if (!existing) {
-      map.set(s.dateKey, s.rows)
-    } else {
-      // append rows (older load more should be distinct; this is just safety)
-      const ids = new Set(existing.map((x) => x.id))
-      map.set(s.dateKey, [...existing, ...s.rows.filter((x) => !ids.has(x.id))])
-    }
-  }
-
-  const dates = Array.from(map.keys()).sort((a, b) => (a > b ? -1 : 1))
-  return dates.map((dateKey) => ({ dateKey, rows: map.get(dateKey)! }))
-}
-
 export default DailyReportList
+
+const DisplaySkeleton = () => (
+  <div className="space-y-10">
+    <div>
+      <Skeleton className="h-4 w-40 rounded-md mb-4" />
+      <Skeleton className="h-40 w-full rounded-md" />
+    </div>
+    <div>
+      <Skeleton className="h-4 w-40 rounded-md mb-4" />
+      <Skeleton className="h-40 w-full rounded-md" />
+    </div>
+    <div>
+      <Skeleton className="h-4 w-40 rounded-md mb-4" />
+      <Skeleton className="h-40 w-full rounded-md" />
+    </div>
+  </div>
+)
