@@ -10,6 +10,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import AppSidebar from '@/components/layout/AppSidebar'
 import { Separator } from '@/components/ui/separator'
 import { Metadata } from 'next'
+import { GlobalProcessingOverlay } from '@/components/layout/GlobalOverlay'
 
 export const metadata: Metadata = {
   title: 'Crescent Wonder School Management System',
@@ -44,7 +45,12 @@ const authLayout = async ({ children }: { children: React.ReactNode }) => {
               )}
             </header>
             <main>
-              <div className="px-4 py-6 max-w-[1080px] w-full md:px-10 md:pb-12">{children}</div>
+              <div className="px-4 py-6 max-w-270 w-full md:px-10 md:pb-12">
+                <div>
+                  <GlobalProcessingOverlay />
+                </div>
+                {children}
+              </div>
             </main>
           </SidebarInset>
         </SidebarProvider>

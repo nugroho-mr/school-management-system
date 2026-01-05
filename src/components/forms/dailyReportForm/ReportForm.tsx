@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
 import { dateStringISO } from '@/lib/date'
+import { useGlobalProcessing } from '@/lib/store/useGlobalProcessing'
 
 type FormValues = z.infer<typeof dailyReportSchema>
 
@@ -59,6 +60,9 @@ export const ReportForm = ({
   const [confirmationOpen, setConfirmationOpen] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const existingPhotoUrl = getMediaThumbUrl(defaultValues?.photo)
+
+  const showProcessOverlay = useGlobalProcessing((s) => s.show)
+  const hideProcessOverlay = useGlobalProcessing((s) => s.hide)
 
   useEffect(() => {
     setSelectedStudentName(() => {
@@ -93,6 +97,7 @@ export const ReportForm = ({
   }, [imagePreview])
 
   const handleSaveDraft = async () => {
+    showProcessOverlay()
     const { getValues } = form
     const currentData = getValues()
     try {
@@ -110,6 +115,8 @@ export const ReportForm = ({
     } catch (error) {
       toast.error('Maaf ada masalah dalam menyimpan laporan. Cobalah beberapa saat lagi.')
       console.error('Error submitting report: ', error)
+    } finally {
+      hideProcessOverlay()
     }
   }
 
@@ -122,6 +129,7 @@ export const ReportForm = ({
   }
 
   const submitForm = async (formData: FormValues) => {
+    showProcessOverlay()
     try {
       const res = await submitDailyStudentReport(formData, false, defaultValues?.id)
 
@@ -140,6 +148,8 @@ export const ReportForm = ({
     } catch (error) {
       toast.error('Maaf ada masalah dalam menyimpan laporan. Cobalah beberapa saat lagi.')
       console.error('Error submitting report: ', error)
+    } finally {
+      hideProcessOverlay()
     }
   }
 
