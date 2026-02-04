@@ -74,6 +74,7 @@ export interface Config {
     roles: Role;
     students: Student;
     'daily-reports': DailyReport;
+    'parent-profiles': ParentProfile;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -87,6 +88,7 @@ export interface Config {
     roles: RolesSelect<false> | RolesSelect<true>;
     students: StudentsSelect<false> | StudentsSelect<true>;
     'daily-reports': DailyReportsSelect<false> | DailyReportsSelect<true>;
+    'parent-profiles': ParentProfilesSelect<false> | ParentProfilesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -315,6 +317,20 @@ export interface DailyReport {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parent-profiles".
+ */
+export interface ParentProfile {
+  id: string;
+  /**
+   * Link to the user account for this parent
+   */
+  user: string | User;
+  fullName: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -360,6 +376,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'daily-reports';
         value: string | DailyReport;
+      } | null)
+    | ({
+        relationTo: 'parent-profiles';
+        value: string | ParentProfile;
       } | null);
   globalSlug?: string | null;
   user:
@@ -560,6 +580,16 @@ export interface DailyReportsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parent-profiles_select".
+ */
+export interface ParentProfilesSelect<T extends boolean = true> {
+  user?: T;
+  fullName?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
