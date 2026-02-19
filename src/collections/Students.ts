@@ -1,9 +1,5 @@
 import { type CollectionConfig } from 'payload'
-
-const isValidUsernameSchema = (usr: string) => {
-  const regex = /^[a-zA-Z0-9_-]*$/
-  return regex.test(usr)
-}
+import { preventMultipleFamily } from './hooks/student'
 
 export const Students: CollectionConfig = {
   slug: 'students',
@@ -15,20 +11,20 @@ export const Students: CollectionConfig = {
     create: ({ req }) =>
       Boolean(
         req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
+        req.user?.role === 'teacher' ||
+        req.user?.collection === 'admins',
       ),
     update: ({ req }) =>
       Boolean(
         req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
+        req.user?.role === 'teacher' ||
+        req.user?.collection === 'admins',
       ),
     delete: ({ req }) =>
       Boolean(
         req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
+        req.user?.role === 'teacher' ||
+        req.user?.collection === 'admins',
       ),
   },
   fields: [
@@ -46,5 +42,16 @@ export const Students: CollectionConfig = {
       unique: true,
       index: true,
     },
+    {
+      name: 'family',
+      type: 'relationship',
+      relationTo: 'families',
+      required: false,
+      index: true,
+      admin: { description: 'Link to the family this student belongs to', readOnly: true },
+    },
   ],
+  hooks: {
+    beforeValidate: [preventMultipleFamily],
+  },
 }

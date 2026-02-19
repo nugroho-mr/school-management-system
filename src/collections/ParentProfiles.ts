@@ -1,4 +1,4 @@
-import { Access, CollectionConfig } from 'payload'
+import { CollectionConfig } from 'payload'
 import { isUserParent } from './hooks/parentProfile'
 
 export const ParentProfiles: CollectionConfig = {

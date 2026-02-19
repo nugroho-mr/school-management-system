@@ -75,6 +75,7 @@ export interface Config {
     students: Student;
     'daily-reports': DailyReport;
     'parent-profiles': ParentProfile;
+    families: Family;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -89,6 +90,7 @@ export interface Config {
     students: StudentsSelect<false> | StudentsSelect<true>;
     'daily-reports': DailyReportsSelect<false> | DailyReportsSelect<true>;
     'parent-profiles': ParentProfilesSelect<false> | ParentProfilesSelect<true>;
+    families: FamiliesSelect<false> | FamiliesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -288,6 +290,25 @@ export interface Student {
   id: string;
   fullname: string;
   studentID: string;
+  /**
+   * Link to the family this student belongs to
+   */
+  family?: (string | null) | Family;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "families".
+ */
+export interface Family {
+  id: string;
+  /**
+   * A unique code to identify the family
+   */
+  familyCode: string;
+  parents: (string | User)[];
+  students: (string | Student)[];
   updatedAt: string;
   createdAt: string;
 }
@@ -380,6 +401,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'parent-profiles';
         value: string | ParentProfile;
+      } | null)
+    | ({
+        relationTo: 'families';
+        value: string | Family;
       } | null);
   globalSlug?: string | null;
   user:
@@ -563,6 +588,7 @@ export interface RolesSelect<T extends boolean = true> {
 export interface StudentsSelect<T extends boolean = true> {
   fullname?: T;
   studentID?: T;
+  family?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -588,6 +614,17 @@ export interface DailyReportsSelect<T extends boolean = true> {
 export interface ParentProfilesSelect<T extends boolean = true> {
   user?: T;
   fullName?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "families_select".
+ */
+export interface FamiliesSelect<T extends boolean = true> {
+  familyCode?: T;
+  parents?: T;
+  students?: T;
   updatedAt?: T;
   createdAt?: T;
 }

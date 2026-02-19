@@ -13,8 +13,6 @@ export const isUserParent: CollectionBeforeValidateHook = async ({ data, req }) 
     depth: 1,
   })
 
-  console.log('Fetched user for parent profile validation:', user)
-
   const userIsParent =
     typeof user?.role === 'string' ? user.role === 'parent' : user?.role?.value === 'parent'
 

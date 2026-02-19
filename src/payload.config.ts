@@ -14,6 +14,7 @@ import { Roles } from './collections/Roles'
 import { Students } from './collections/Students'
 import { DailyReports } from './collections/DailyReports'
 import { ParentProfiles } from './collections/ParentProfiles'
+import { Families } from './collections/Families'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -28,7 +29,7 @@ export default buildConfig({
       defaultTimezone: 'Asia/Jakarta',
     },
   },
-  collections: [Admins, Users, Media, Roles, Students, DailyReports, ParentProfiles],
+  collections: [Admins, Users, Media, Roles, Students, DailyReports, ParentProfiles, Families],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
