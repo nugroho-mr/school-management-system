@@ -4,7 +4,6 @@ import ContentHeader from '@/components/layout/ContentHeader'
 import { getPayloadClient } from '@/lib/payload'
 import { DailyReport } from '@/payload-types'
 import { CollectionSlug } from 'payload'
-import React from 'react'
 
 const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params

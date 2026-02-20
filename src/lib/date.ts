@@ -15,3 +15,39 @@ export const dateStringISO = (date?: string): string => {
   const day = String(today.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+export function jakartaDayRange(day: string) {
+  // day: 'YYYY-MM-DD' (interpreted as Jakarta local day)
+  const start = `${day}T00:00:00+07:00`
+
+  const [y, m, d] = day.split('-').map(Number)
+  const next = new Date(Date.UTC(y, m - 1, d + 1))
+
+  const ny = next.getUTCFullYear()
+  const nm = String(next.getUTCMonth() + 1).padStart(2, '0')
+  const nd = String(next.getUTCDate()).padStart(2, '0')
+
+  const end = `${ny}-${nm}-${nd}T00:00:00+07:00`
+  return { start, end }
+}
+
+export function jakartaMonthRange(month: string) {
+  // month: 'YYYY-MM'
+  const start = `${month}-01T00:00:00+07:00`
+
+  const [y, m] = month.split('-').map(Number)
+  // next month at day 1
+  const nextMonth = new Date(Date.UTC(y, m, 1))
+
+  const ny = nextMonth.getUTCFullYear()
+  const nm = String(nextMonth.getUTCMonth() + 1).padStart(2, '0')
+
+  const end = `${ny}-${nm}-01T00:00:00+07:00`
+  return { start, end }
+}
+
+export const toMonthKey = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
