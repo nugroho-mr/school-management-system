@@ -1,7 +1,9 @@
 import { getCurrentUser } from '@/lib/auth'
-import { dateStringISO, jakartaMonthRange } from '@/lib/date'
+import { jakartaDayRange } from '@/lib/date'
 import { getPayloadClient } from '@/lib/payload'
+import { Student } from '@/payload-types'
 import { NextResponse } from 'next/server'
+import { date } from 'zod'
 
 export async function GET(req: Request) {
   const payload = await getPayloadClient()
@@ -27,11 +29,11 @@ export async function GET(req: Request) {
   // }
 
   const searchParams = new URL(req.url).searchParams
-  const month = searchParams.get('month')
-  const monthRegex = /^\d{4}-\d{2}$/
-  if (!month || !monthRegex.test(month)) {
+  const day = searchParams.get('day')
+  const dayRegex = /^\d{4}-\d{2}-\d{2}$/
+  if (!day || !dayRegex.test(day)) {
     return NextResponse.json(
-      { error: 'Invalid month format. Expected YYYY-MM.' },
+      { error: 'Invalid day format. Expected YYYY-MM-DD.' },
       {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +44,7 @@ export async function GET(req: Request) {
   const familyRes = await payload.find({
     collection: 'families',
     where: { parents: { contains: user?.id || '699665d9773460f3335c3e15' } },
-    depth: 2,
+    depth: 1,
     limit: 10,
   })
 
@@ -53,14 +55,14 @@ export async function GET(req: Request) {
 
   if (studentIds.length === 0) {
     return NextResponse.json(
-      { month, days: {} },
+      { day, reports: [] },
       {
         headers: { 'Content-Type': 'application/json' },
       },
     )
   }
 
-  const { start, end } = jakartaMonthRange(month)
+  const { start, end } = jakartaDayRange(day)
 
   const reportRes = await payload.find({
     collection: 'daily-reports',
@@ -79,26 +81,29 @@ export async function GET(req: Request) {
         },
       ],
     },
-    depth: 0,
+    depth: 2,
     limit: 2000,
-    sort: 'date',
+    sort: 'student.fullname',
   })
 
-  const days: Record<string, string[]> = {}
+  const normalizedReports: Record<string, any> = {}
 
   for (const report of reportRes?.docs || []) {
     const studentId = typeof report.student === 'string' ? report.student : report.student.id
-    const key = dateStringISO(report.date)
-    if (!days[key]) {
-      days[key] = []
+    if (!normalizedReports[studentId]) {
+      normalizedReports[studentId] = {
+        date: report.date,
+        student: report.student,
+      }
     }
-    if (!days[key].includes(studentId)) {
-      days[key].push(studentId)
+    normalizedReports[studentId][report.reportType] = {
+      note: report.note,
+      ...(report.photo && { photo: report.photo }),
     }
   }
 
   return NextResponse.json(
-    { month, days },
+    { day, reports: normalizedReports },
     {
       headers: { 'Content-Type': 'application/json' },
     },
