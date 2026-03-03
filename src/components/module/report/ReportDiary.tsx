@@ -17,6 +17,9 @@ import { Day } from 'node_modules/react-day-picker/dist/esm/components/custom-co
 import { Button } from '@/components/ui/button'
 import { CiFolderOff } from 'react-icons/ci'
 import { cn } from '@/lib/utils'
+import { fetchStudentReportAvailability, fetchStudentReportByDay } from '@/lib/actions/report'
+import { Media } from '@/payload-types'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Availability = Record<string, string[]>
 type Report = Record<string, any>
@@ -36,29 +39,24 @@ const ReportDiary = () => {
 
   const loadAvailability = async (targetMonth: Date) => {
     const monthKey = toMonthKey(targetMonth)
-    const res = await fetch(`/api/parent/reports/availability?month=${monthKey}`)
-    if (!res.ok) {
-      throw new Error(
-        `Failed to load availability for month ${monthKey}: ${res.status} ${res.statusText}`,
-      )
+    const res = await fetchStudentReportAvailability(monthKey)
+    if (!res || !res.ok) {
+      throw new Error(res.message || `Gagal menampilkan data laporan untuk bulan ${monthKey}`)
     }
-    const data = await res.json()
-    setAvailability(data.days ?? {})
+    const data = res.data
+    setAvailability(data?.days ?? {})
   }
 
   const loadDayDetail = async (day: Date) => {
-    console.log('Loading details for day:', day)
     setLoading(true)
     try {
       const dayKey = dateStringISO(day.toDateString())
-      const res = await fetch(`/api/parent/reports/by-day?day=${dayKey}`, {
-        credentials: 'include',
-      })
+      const res = await fetchStudentReportByDay(dayKey)
       if (!res.ok) {
-        throw new Error(`Failed to load reports for day ${dayKey}: ${res.status} ${res.statusText}`)
+        throw new Error(`Gagal memuat laporan untuk tanggal ${dayKey}: ${res.message}`)
       }
-      const data = await res.json()
-      setReportData(data.reports ?? {})
+      const data = res.data
+      setReportData(data?.reports ?? {})
     } finally {
       setLoading(false)
     }
@@ -68,10 +66,6 @@ const ReportDiary = () => {
     loadAvailability(today).catch(console.error)
     loadDayDetail(today).catch(console.error)
   }, [])
-
-  useEffect(() => {
-    console.log('Report data updated:', reportData)
-  }, [reportData])
 
   return (
     <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start">
@@ -118,12 +112,8 @@ const ReportDiary = () => {
                     </Button>
                   )
                 },
-                MonthCaption: ({ className, children, ...props }) => {
-                  return (
-                    <div {...props} className={`${className} md:h-8 md:leading-8`}>
-                      {children}
-                    </div>
-                  )
+                MonthCaption: ({ className, children }) => {
+                  return <div className={`${className} md:h-8 md:leading-8`}>{children}</div>
                 },
                 Weekdays: ({ className, children, ...props }) => {
                   return (
@@ -203,54 +193,44 @@ const ReportDiary = () => {
             </div>
           ) : (
             <>
-              {Object.entries(reportData).map(([key, report]) => (
-                <Card key={key} className="gap-3">
-                  <CardContent>
-                    <p className="font-bold m-0 uppercase">
-                      {report.student.fullname}
-                      <br />
-                      <span className="text-xs text-gray-400 font-normal">
-                        NIS. {report.student.studentID}
-                      </span>
-                    </p>
-                    <hr className="my-3" />
-                    {report.daily && (
-                      <div>
-                        <p className="font-medium mb-2">Kegiatan harian</p>
-                        {report.daily.photo && (
-                          <div>
-                            <Image
-                              src={report.daily.photo.url}
-                              alt="Daily Report Picture"
-                              width={300}
-                              height={200}
-                            />
-                          </div>
-                        )}
-                        <div className="prose">{parse(report.daily?.note || '')}</div>
-                      </div>
-                    )}
-                    {report.montessori && (
-                      <div>
-                        <p className="font-medium mb-2">Kegiatan Montessori</p>
-                        {report.montessori.photo && (
-                          <div>
-                            <Image
-                              src={report.montessori.photo.url}
-                              alt="Montessori Report Picture"
-                              width={300}
-                              height={200}
-                            />
-                          </div>
-                        )}
-                        <div className="prose prose-li:leading-tight prose-p:mt-0 prose-p:mb-3">
-                          {parse(report.montessori?.note || '')}
+              {loading ? (
+                <div className="flex flex-col gap-4">
+                  <ReportCardSkeleton />
+                </div>
+              ) : (
+                Object.entries(reportData).map(([key, report]) => (
+                  <Card key={key} className="gap-3 border-primary">
+                    <CardContent>
+                      <div className="flex gap-3 items-center">
+                        <div className="flex-none">
+                          <Image
+                            src={`${report.student.gender === 'male' ? '/images/propic-male.png' : '/images/propic-female.png'}`}
+                            alt="Student Profile Picture"
+                            width={50}
+                            height={50}
+                            className="rounded-full aspect-square object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="font-bold m-0 uppercase">
+                            {report.student.fullname}
+                            <br />
+                            <span className="text-xs text-gray-400 font-normal">
+                              NIS. {report.student.studentID}
+                            </span>
+                          </p>
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+
+                      <hr className="my-3" />
+                      {report.daily && <ReportCard title="Kegiatan Harian" {...report.daily} />}
+                      {report.montessori && (
+                        <ReportCard title="Kegiatan Montessori" {...report.montessori} />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </>
           )}
         </div>
@@ -258,5 +238,57 @@ const ReportDiary = () => {
     </div>
   )
 }
+
+const ReportCard = ({ title, photo, note }: { title: string; photo?: Media; note: string }) => (
+  <Card className="mt-3 pt-0 overflow-hidden">
+    <CardHeader className="py-2 text-center bg-muted text-muted-foreground gap-0">
+      <p className=" font-bold text-primary">{title}</p>
+    </CardHeader>
+    <CardContent>
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-8">
+        {photo && (
+          <div className="sm:w-1/4">
+            <Image
+              src={typeof photo === 'string' ? photo : photo.url || ''}
+              alt="Gambar laporan"
+              width={photo.sizes?.thumbnail?.width || 300}
+              height={photo.sizes?.thumbnail?.height || 300}
+              className="rounded-sm bg-gray-400/50"
+            />
+          </div>
+        )}
+        <div className="prose prose-li:leading-tight prose-p:mt-0 prose-p:mb-3 flex-1">
+          {parse(note || '')}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)
+
+const ReportCardSkeleton = () => (
+  <Card className="animate-pulse">
+    <CardContent>
+      <div className="flex gap-3 items-center">
+        <div className="flex-none">
+          <Skeleton className="rounded-full aspect-square w-12.5 h-12.5" />
+        </div>
+        <div>
+          <Skeleton className="w-32 h-4 mb-2" />
+          <Skeleton className="w-20 h-3" />
+        </div>
+      </div>
+      <hr className="my-3" />
+      <Card className="mt-3 pt-0 overflow-hidden">
+        <CardHeader className="py-2 text-center bg-gray-100/30 text-muted-foreground gap-0">
+          <Skeleton className="w-24 h-6 mx-auto" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="w-full h-4 mb-2" />
+          <Skeleton className="w-full h-4 mb-2" />
+        </CardContent>
+      </Card>
+    </CardContent>
+  </Card>
+)
 
 export default ReportDiary

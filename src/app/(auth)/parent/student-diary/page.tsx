@@ -1,10 +1,14 @@
+import ContentHeader from '@/components/layout/ContentHeader'
 import ReportDiary from '@/components/module/report/ReportDiary'
 
 const studentDiaryPage = async () => {
   return (
-    <div>
-      <ReportDiary />
-    </div>
+    <>
+      <ContentHeader title="Laporan Harian" prevPath="/dashboard" />
+      <section>
+        <ReportDiary />
+      </section>
+    </>
   )
 }
 

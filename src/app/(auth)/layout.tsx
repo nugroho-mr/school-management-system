@@ -1,4 +1,5 @@
 import React from 'react'
+import { Nunito, Merriweather } from 'next/font/google'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getCurrentUser } from '@/lib/auth'
@@ -16,16 +17,25 @@ export const metadata: Metadata = {
   title: 'Crescent Wonder School Management System',
 }
 
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
+const merriweather = Merriweather({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+})
+
 const authLayout = async ({ children }: { children: React.ReactNode }) => {
   const user = await getCurrentUser()
   const cookieStore = await cookies()
   const defaultSidebarOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   // Go to login if no user
-  // if (!user) redirect('/auth/login')
+  if (!user) redirect('/auth/login')
 
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className={`${nunito.className} scroll-smooth`}>
       <body className="antialiased">
         <Toaster position="top-center" richColors={true} expand={true} />
         <SidebarProvider defaultOpen={defaultSidebarOpen}>

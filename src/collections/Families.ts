@@ -1,13 +1,16 @@
-import { CollectionConfig } from 'payload'
+import { CollectionConfig, PayloadRequest } from 'payload'
 import { syncStudentsFamily, validateFamilyCode } from './hooks/family'
+
+const FamilyWriteAccess = ({ req }: { req: PayloadRequest }) =>
+  Boolean(req.user?.collection === 'admins')
 
 export const Families: CollectionConfig = {
   slug: 'families',
   access: {
     read: (): boolean => true,
-    create: ({ req }): boolean => req.user?.role === 'admin' || req.user?.role === 'superadmin',
-    delete: ({ req }): boolean => req.user?.role === 'admin' || req.user?.role === 'superadmin',
-    update: ({ req }): boolean => req.user?.role === 'admin' || req.user?.role === 'superadmin',
+    create: FamilyWriteAccess,
+    delete: FamilyWriteAccess,
+    update: FamilyWriteAccess,
   },
   fields: [
     {

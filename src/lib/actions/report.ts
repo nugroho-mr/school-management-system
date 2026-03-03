@@ -9,6 +9,9 @@ import { CollectionSlug } from 'payload'
 import { Students } from '@/collections/Students'
 import { Student } from '@/payload-types'
 import dayjs from 'dayjs'
+import { jakartaMonthRange, dateStringISO, jakartaDayRange } from '../date'
+import { normalizeUserRole } from '../user'
+import { hasMatchRole } from '@/utils/lib'
 
 type DailyReport = z.infer<typeof dailyReportSchema>
 type ActionState = { ok: true; id: string } | { ok: false; message: string }
@@ -159,5 +162,181 @@ export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
   return {
     docs: res.docs as unknown as DailyReport[],
     totalDocs: res.totalDocs,
+  }
+}
+
+export const fetchStudentReportAvailability = async (month: string) => {
+  const payload = await getPayloadClient()
+  const user = await getCurrentUser()
+
+  const normalizedUserRole = normalizeUserRole(user?.role)
+  const permitedRole = ['parent', 'admin', 'superadmin', 'super']
+
+  if (!user || !hasMatchRole(permitedRole, normalizedUserRole)) {
+    return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
+  }
+
+  const monthRegex = /^\d{4}-\d{2}$/
+  if (!month || !monthRegex.test(month)) {
+    return {
+      ok: false,
+      message: 'Format penanggalan salah. Gunakan YYYY-MM.',
+      status: 400,
+    }
+  }
+
+  const familyRes = await payload.find({
+    collection: 'families',
+    where: { parents: { contains: user?.id || '699665d9773460f3335c3e15' } },
+    depth: 2,
+    limit: 10,
+  })
+
+  if (familyRes === undefined) {
+    return {
+      ok: false,
+      message: 'Gagal mencari keluarga pengguna.',
+    }
+  }
+
+  const families = familyRes?.docs
+  const studentIds = families.flatMap((f: any) =>
+    (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
+  )
+
+  if (studentIds.length === 0) return { month, days: {} }
+
+  const { start, end } = jakartaMonthRange(month)
+
+  const reportRes = await payload.find({
+    collection: 'daily-reports',
+    where: {
+      and: [
+        { student: { in: studentIds } },
+        {
+          date: {
+            greater_than_equal: start,
+          },
+        },
+        {
+          date: {
+            less_than_equal: end,
+          },
+        },
+      ],
+    },
+    depth: 0,
+    limit: 2000,
+    sort: 'date',
+  })
+
+  const days: Record<string, string[]> = {}
+
+  for (const report of reportRes?.docs || []) {
+    const studentId = typeof report.student === 'string' ? report.student : report.student.id
+    const key = dateStringISO(report.date)
+    if (!days[key]) {
+      days[key] = []
+    }
+    if (!days[key].includes(studentId)) {
+      days[key].push(studentId)
+    }
+  }
+
+  return { ok: true, data: { month, days } }
+}
+
+export const fetchStudentReportByDay = async (day: string) => {
+  const payload = await getPayloadClient()
+  const user = await getCurrentUser()
+
+  const permitedRole = ['parent', 'admin', 'superadmin', 'super']
+  const normalizedUserRole = normalizeUserRole(user?.role)
+
+  if (!user || !hasMatchRole(permitedRole, normalizedUserRole)) {
+    return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
+  }
+
+  const dayRegex = /^\d{4}-\d{2}-\d{2}$/
+  if (!day || !dayRegex.test(day)) {
+    return {
+      ok: false,
+      message: 'Format tanggal salah. Gunakan YYYY-MM-DD.',
+    }
+  }
+
+  try {
+    const familyRes = await payload.find({
+      collection: 'families',
+      where: { parents: { contains: user?.id || '699665d9773460f3335c3e15' } },
+      depth: 1,
+      limit: 10,
+    })
+
+    const families = familyRes?.docs
+    const studentIds = families.flatMap((f: any) =>
+      (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
+    )
+
+    if (studentIds.length === 0) {
+      return {
+        ok: false,
+        message: 'Tidak ada siswa yang terkait dengan pengguna.',
+      }
+    }
+
+    const { start, end } = jakartaDayRange(day)
+
+    const reportRes = await payload.find({
+      collection: 'daily-reports',
+      where: {
+        and: [
+          { student: { in: studentIds } },
+          {
+            date: {
+              greater_than_equal: start,
+            },
+          },
+          {
+            date: {
+              less_than_equal: end,
+            },
+          },
+        ],
+      },
+      depth: 2,
+      limit: 2000,
+      sort: 'student.fullname',
+    })
+
+    const normalizedReports: Record<string, any> = {}
+
+    for (const report of reportRes?.docs || []) {
+      const studentId = typeof report.student === 'string' ? report.student : report.student.id
+      if (!normalizedReports[studentId]) {
+        normalizedReports[studentId] = {
+          date: report.date,
+          student: report.student,
+        }
+      }
+      normalizedReports[studentId][report.reportType] = {
+        note: report.note,
+        ...(report.photo && { photo: report.photo }),
+      }
+    }
+
+    return {
+      ok: true,
+      data: { day, reports: normalizedReports },
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Gagal mengambil data laporan untuk tanggal tersebut.'
+    return {
+      ok: false,
+      message,
+    }
   }
 }

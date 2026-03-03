@@ -20,7 +20,16 @@ export const Admins: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'admin',
-      options: ['admin', 'superadmin'],
+      options: [
+        {
+          value: 'admin',
+          label: 'Admin',
+        },
+        {
+          value: 'superadmin',
+          label: 'Super Admin',
+        },
+      ],
     },
   ],
 }

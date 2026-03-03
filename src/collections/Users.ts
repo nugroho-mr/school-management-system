@@ -37,8 +37,13 @@ export const Users: CollectionConfig = {
     {
       name: 'role',
       label: 'Role',
-      type: 'relationship',
-      relationTo: 'roles',
+      type: 'select',
+      options: [
+        { label: 'Teacher', value: 'teacher' },
+        { label: 'Parent', value: 'parent' },
+        { label: 'Super', value: 'super' },
+      ],
+      hasMany: true,
       required: true,
     },
   ],

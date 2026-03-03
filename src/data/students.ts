@@ -5,8 +5,6 @@ export const getCurrentStudents = async () => {
   const students = await payload.find({
     collection: 'students',
     limit: 9999,
-    // sort: 'fullname',
-    // depth: 0,
   })
 
   return students.docs

@@ -14,7 +14,7 @@ export const isUserParent: CollectionBeforeValidateHook = async ({ data, req }) 
   })
 
   const userIsParent =
-    typeof user?.role === 'string' ? user.role === 'parent' : user?.role?.value === 'parent'
+    typeof user?.role === 'string' ? user.role === 'parent' : user?.role?.includes('parent')
 
   if (!userIsParent) {
     throw new ValidationError({

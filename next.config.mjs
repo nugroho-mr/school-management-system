@@ -14,6 +14,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: `${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com`,
+        port: '',
+        pathname: '/**', // Allows all images in the bucket
+      },
+    ],
   },
   async redirects() {
     return [

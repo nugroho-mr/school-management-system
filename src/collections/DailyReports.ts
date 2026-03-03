@@ -1,10 +1,20 @@
-import { CollectionConfig, CollectionSlug } from 'payload'
+import { CollectionConfig, CollectionSlug, PayloadRequest } from 'payload'
+
 import {
   deleteOldPhotoOnPublish,
   setCreatedBy,
   validateDateNotInFuture,
   validateUniquePublishedReport,
 } from './hooks/dailyReport'
+import { hasMatchRole } from '@/utils/lib'
+import { normalizeUserRole } from '@/lib/user'
+
+const dailyReportWriteAccess = ({ req }: { req: PayloadRequest }) => {
+  const normalizedRoles = normalizeUserRole(req.user?.role)
+  return Boolean(
+    hasMatchRole(['super', 'teacher'], normalizedRoles) || req.user?.collection === 'admins',
+  )
+}
 
 export const DailyReports: CollectionConfig = {
   slug: 'daily-reports',
@@ -18,24 +28,9 @@ export const DailyReports: CollectionConfig = {
   },
   access: {
     read: ({ req }) => Boolean(req.user),
-    create: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
-    update: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
-    delete: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
+    create: dailyReportWriteAccess,
+    update: dailyReportWriteAccess,
+    delete: dailyReportWriteAccess,
   },
   versions: {
     drafts: true,
