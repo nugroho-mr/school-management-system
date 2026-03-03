@@ -8,10 +8,11 @@ import { DailyReports } from '@/collections/DailyReports'
 import { CollectionSlug } from 'payload'
 import { Students } from '@/collections/Students'
 import { Student } from '@/payload-types'
-import dayjs from 'dayjs'
 import { jakartaMonthRange, dateStringISO, jakartaDayRange } from '../date'
 import { normalizeUserRole } from '../user'
 import { hasMatchRole } from '@/utils/lib'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 
 type DailyReport = z.infer<typeof dailyReportSchema>
 type ActionState = { ok: true; id: string } | { ok: false; message: string }
@@ -64,7 +65,7 @@ export const submitDailyStudentReport = async (
         })) as Student
         return {
           ok: false,
-          message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${dayjs(reportData.date).locale('id-ID').format('DD MMMM YYYY')} sudah ada.`,
+          message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${format(new Date(reportData.date), 'dd MMMM yyyy', { locale: id })} sudah ada.`,
         }
       }
 
@@ -169,10 +170,14 @@ export const fetchStudentReportAvailability = async (month: string) => {
   const payload = await getPayloadClient()
   const user = await getCurrentUser()
 
-  const normalizedUserRole = normalizeUserRole(user?.role)
-  const permitedRole = ['parent', 'admin', 'superadmin', 'super']
+  if (!user) return { ok: false, message: 'Pengguna tidak terotentikasi.' }
 
-  if (!user || !hasMatchRole(permitedRole, normalizedUserRole)) {
+  const isAdministrator = user.collection === 'admins'
+
+  const permitedRole = ['parent']
+  const isPermitedUser = hasMatchRole(permitedRole, normalizeUserRole(user?.role))
+
+  if (!isAdministrator && !isPermitedUser) {
     return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
   }
 
@@ -185,75 +190,88 @@ export const fetchStudentReportAvailability = async (month: string) => {
     }
   }
 
-  const familyRes = await payload.find({
-    collection: 'families',
-    where: { parents: { contains: user?.id || '699665d9773460f3335c3e15' } },
-    depth: 2,
-    limit: 10,
-  })
+  try {
+    const familyRes = await payload.find({
+      collection: 'families',
+      where: { parents: { contains: user?.id } },
+      depth: 2,
+      limit: 10,
+    })
 
-  if (familyRes === undefined) {
+    if (familyRes === undefined) {
+      return {
+        ok: false,
+        message: 'Gagal mencari keluarga pengguna.',
+      }
+    }
+
+    const families = familyRes?.docs
+    const studentIds = families.flatMap((f: any) =>
+      (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
+    )
+
+    if (studentIds.length === 0) return { ok: true, data: { month, days: {} } }
+
+    const { start, end } = jakartaMonthRange(month)
+
+    const reportRes = await payload.find({
+      collection: 'daily-reports',
+      where: {
+        and: [
+          { student: { in: studentIds } },
+          {
+            date: {
+              greater_than_equal: start,
+            },
+          },
+          {
+            date: {
+              less_than_equal: end,
+            },
+          },
+        ],
+      },
+      depth: 0,
+      limit: 500,
+      sort: 'date',
+    })
+
+    const days: Record<string, string[]> = {}
+
+    for (const report of reportRes?.docs || []) {
+      const studentId = typeof report.student === 'string' ? report.student : report.student.id
+      const key = dateStringISO(report.date)
+      if (!days[key]) {
+        days[key] = []
+      }
+      if (!days[key].includes(studentId)) {
+        days[key].push(studentId)
+      }
+    }
+
+    return { ok: true, data: { month, days } }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'There is an unknown error. Try again later.'
     return {
       ok: false,
-      message: 'Gagal mencari keluarga pengguna.',
+      message,
     }
   }
-
-  const families = familyRes?.docs
-  const studentIds = families.flatMap((f: any) =>
-    (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
-  )
-
-  if (studentIds.length === 0) return { month, days: {} }
-
-  const { start, end } = jakartaMonthRange(month)
-
-  const reportRes = await payload.find({
-    collection: 'daily-reports',
-    where: {
-      and: [
-        { student: { in: studentIds } },
-        {
-          date: {
-            greater_than_equal: start,
-          },
-        },
-        {
-          date: {
-            less_than_equal: end,
-          },
-        },
-      ],
-    },
-    depth: 0,
-    limit: 2000,
-    sort: 'date',
-  })
-
-  const days: Record<string, string[]> = {}
-
-  for (const report of reportRes?.docs || []) {
-    const studentId = typeof report.student === 'string' ? report.student : report.student.id
-    const key = dateStringISO(report.date)
-    if (!days[key]) {
-      days[key] = []
-    }
-    if (!days[key].includes(studentId)) {
-      days[key].push(studentId)
-    }
-  }
-
-  return { ok: true, data: { month, days } }
 }
 
 export const fetchStudentReportByDay = async (day: string) => {
   const payload = await getPayloadClient()
   const user = await getCurrentUser()
 
-  const permitedRole = ['parent', 'admin', 'superadmin', 'super']
-  const normalizedUserRole = normalizeUserRole(user?.role)
+  if (!user) return { ok: false, message: 'Pengguna tidak terotentikasi.' }
 
-  if (!user || !hasMatchRole(permitedRole, normalizedUserRole)) {
+  const isAdministrator = user.collection === 'admins'
+
+  const permitedRole = ['parent']
+  const isPermitedUser = hasMatchRole(permitedRole, normalizeUserRole(user?.role))
+
+  if (!isAdministrator && !isPermitedUser) {
     return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
   }
 
@@ -268,7 +286,7 @@ export const fetchStudentReportByDay = async (day: string) => {
   try {
     const familyRes = await payload.find({
       collection: 'families',
-      where: { parents: { contains: user?.id || '699665d9773460f3335c3e15' } },
+      where: { parents: { contains: user?.id } },
       depth: 1,
       limit: 10,
     })
@@ -280,8 +298,8 @@ export const fetchStudentReportByDay = async (day: string) => {
 
     if (studentIds.length === 0) {
       return {
-        ok: false,
-        message: 'Tidak ada siswa yang terkait dengan pengguna.',
+        ok: true,
+        data: { day, reports: {} },
       }
     }
 
@@ -305,7 +323,7 @@ export const fetchStudentReportByDay = async (day: string) => {
         ],
       },
       depth: 2,
-      limit: 2000,
+      limit: 500,
       sort: 'student.fullname',
     })
 
@@ -331,9 +349,7 @@ export const fetchStudentReportByDay = async (day: string) => {
     }
   } catch (error) {
     const message =
-      error instanceof Error
-        ? error.message
-        : 'Gagal mengambil data laporan untuk tanggal tersebut.'
+      error instanceof Error ? error.message : 'There is an unknown error. Try again later.'
     return {
       ok: false,
       message,

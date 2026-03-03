@@ -21,10 +21,6 @@ const nunito = Nunito({
   subsets: ['latin'],
   weight: ['400', '700'],
 })
-const merriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-})
 
 const authLayout = async ({ children }: { children: React.ReactNode }) => {
   const user = await getCurrentUser()

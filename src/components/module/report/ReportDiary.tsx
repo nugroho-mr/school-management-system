@@ -3,23 +3,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
-import { id } from 'date-fns/locale'
 import { dateStringISO, toMonthKey } from '@/lib/date'
-import _ from 'lodash'
-import 'dayjs/locale/id'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 import { isSameMonth } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import parse from 'html-react-parser'
-import dayjs from 'dayjs'
 import { FaRegCalendar } from 'react-icons/fa6'
 import { Badge } from '@/components/ui/badge'
-import { Day } from 'node_modules/react-day-picker/dist/esm/components/custom-components'
 import { Button } from '@/components/ui/button'
 import { CiFolderOff } from 'react-icons/ci'
 import { cn } from '@/lib/utils'
 import { fetchStudentReportAvailability, fetchStudentReportByDay } from '@/lib/actions/report'
 import { Media } from '@/payload-types'
 import { Skeleton } from '@/components/ui/skeleton'
+import DOMPurify from 'dompurify'
+import { toast } from 'sonner'
 
 type Availability = Record<string, string[]>
 type Report = Record<string, any>
@@ -39,37 +38,43 @@ const ReportDiary = () => {
 
   const loadAvailability = async (targetMonth: Date) => {
     const monthKey = toMonthKey(targetMonth)
-    const res = await fetchStudentReportAvailability(monthKey)
-    if (!res || !res.ok) {
-      throw new Error(res.message || `Gagal menampilkan data laporan untuk bulan ${monthKey}`)
+    try {
+      const res = await fetchStudentReportAvailability(monthKey)
+      if (!res || !res.ok) {
+        toast.error(`Gagal menampilkan data laporan untuk bulan ${monthKey}`)
+      }
+      setAvailability(res.data?.days ?? {})
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat memuat data ketersediaan laporan. Silakan coba lagi.')
+      console.error('Error fetching availability:', error)
     }
-    const data = res.data
-    setAvailability(data?.days ?? {})
   }
 
   const loadDayDetail = async (day: Date) => {
     setLoading(true)
+    const dayKey = dateStringISO(day.toDateString())
     try {
-      const dayKey = dateStringISO(day.toDateString())
       const res = await fetchStudentReportByDay(dayKey)
-      if (!res.ok) {
-        throw new Error(`Gagal memuat laporan untuk tanggal ${dayKey}: ${res.message}`)
+      if (!res || !res.ok) {
+        toast.error(`Gagal memuat laporan untuk tanggal ${dayKey}`)
       }
-      const data = res.data
-      setReportData(data?.reports ?? {})
+      setReportData(res.data?.reports ?? {})
+    } catch (error) {
+      toast.error('Terjadi kesalahan. Silakan coba lagi.')
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadAvailability(today).catch(console.error)
-    loadDayDetail(today).catch(console.error)
+    loadAvailability(today)
+    loadDayDetail(today)
   }, [])
 
   return (
     <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start">
-      <div className="md:max-w-70">
+      <div className="overflow-x-auto md:max-w-70">
         <Card className="border-gray-200">
           <CardContent>
             <p className="text-center text-sm text-primary">
@@ -88,14 +93,12 @@ const ReportDiary = () => {
               onSelect={(d) => {
                 if (!d) return
                 setSelectedDay(d)
-                loadDayDetail(d).catch(console.error)
+                loadDayDetail(d)
               }}
               onMonthChange={(m) => {
                 setMonth(m)
                 setAvailability({})
-                loadAvailability(m).catch((err) =>
-                  console.error('Failed to load availability', err),
-                )
+                loadAvailability(m)
               }}
               components={{
                 PreviousMonthButton: ({ className, children, ...props }) => {
@@ -163,7 +166,7 @@ const ReportDiary = () => {
                 <CardTitle className="flex items-center gap-2 ">
                   <FaRegCalendar className="inline-block" />{' '}
                   <span className="inline-block">
-                    {dayjs(selectedDay).locale('id').format('dddd, DD MMMM YYYY')}
+                    {format(selectedDay, 'EEEE, dd MMMM yyyy', { locale: id })}
                   </span>
                 </CardTitle>
               </div>
@@ -181,57 +184,53 @@ const ReportDiary = () => {
               </div>
             </CardContent>
           </Card>
-          {_.isEmpty(reportData) ? (
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              <ReportCardSkeleton />
+            </div>
+          ) : Object.entries(reportData).length <= 0 ? (
             <div className="mt-10">
               <CiFolderOff className="size-30 text-muted-foreground opacity-30 mx-auto" />
               <p className="text-center text-sm mt-2">
                 Tidak ada laporan untuk hari{' '}
                 <span className="font-bold">
-                  {dayjs(selectedDay).locale('id').format('dddd, DD MMMM YYYY')}
+                  {format(selectedDay, 'EEEE, dd MMMM yyyy', { locale: id })}
                 </span>
               </p>
             </div>
           ) : (
-            <>
-              {loading ? (
-                <div className="flex flex-col gap-4">
-                  <ReportCardSkeleton />
-                </div>
-              ) : (
-                Object.entries(reportData).map(([key, report]) => (
-                  <Card key={key} className="gap-3 border-primary">
-                    <CardContent>
-                      <div className="flex gap-3 items-center">
-                        <div className="flex-none">
-                          <Image
-                            src={`${report.student.gender === 'male' ? '/images/propic-male.png' : '/images/propic-female.png'}`}
-                            alt="Student Profile Picture"
-                            width={50}
-                            height={50}
-                            className="rounded-full aspect-square object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-bold m-0 uppercase">
-                            {report.student.fullname}
-                            <br />
-                            <span className="text-xs text-gray-400 font-normal">
-                              NIS. {report.student.studentID}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
+            Object.entries(reportData).map(([key, report]) => (
+              <Card key={key} className="gap-3 border-primary">
+                <CardContent>
+                  <div className="flex gap-3 items-center">
+                    <div className="flex-none">
+                      <Image
+                        src={`${report.student.gender === 'male' ? '/images/propic-male.png' : '/images/propic-female.png'}`}
+                        alt="Student Profile Picture"
+                        width={50}
+                        height={50}
+                        className="rounded-full aspect-square object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-bold m-0 uppercase">
+                        {report.student.fullname}
+                        <br />
+                        <span className="text-xs text-gray-400 font-normal">
+                          NIS. {report.student.studentID}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
 
-                      <hr className="my-3" />
-                      {report.daily && <ReportCard title="Kegiatan Harian" {...report.daily} />}
-                      {report.montessori && (
-                        <ReportCard title="Kegiatan Montessori" {...report.montessori} />
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </>
+                  <hr className="my-3" />
+                  {report.daily && <ReportCard title="Kegiatan Harian" {...report.daily} />}
+                  {report.montessori && (
+                    <ReportCard title="Kegiatan Montessori" {...report.montessori} />
+                  )}
+                </CardContent>
+              </Card>
+            ))
           )}
         </div>
       </div>
@@ -258,7 +257,7 @@ const ReportCard = ({ title, photo, note }: { title: string; photo?: Media; note
           </div>
         )}
         <div className="prose prose-li:leading-tight prose-p:mt-0 prose-p:mb-3 flex-1">
-          {parse(note || '')}
+          {parse(DOMPurify.sanitize(note || ''))}
         </div>
       </div>
     </CardContent>

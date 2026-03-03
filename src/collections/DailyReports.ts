@@ -27,7 +27,37 @@ export const DailyReports: CollectionConfig = {
     useAsTitle: 'date',
   },
   access: {
-    read: ({ req }) => Boolean(req.user),
+    read: async ({ req }) => {
+      if (!req.user) return false
+      if (req.user.collection === 'admins') return true
+      const normalizedRoles = normalizeUserRole(req.user.role)
+      if (hasMatchRole(['super', 'teacher'], normalizedRoles)) return true
+
+      let studentIds: string[] = []
+
+      try {
+        const familyRes = await req.payload.find({
+          collection: 'families',
+          where: {
+            parents: {
+              contains: req.user.id,
+            },
+          },
+        })
+        studentIds =
+          familyRes?.docs.flatMap((f: any) =>
+            (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
+          ) || []
+      } catch (error) {
+        console.error('Error fetching family data:', error)
+      }
+
+      return {
+        student: {
+          in: studentIds,
+        },
+      }
+    },
     create: dailyReportWriteAccess,
     update: dailyReportWriteAccess,
     delete: dailyReportWriteAccess,

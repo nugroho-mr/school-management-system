@@ -1,5 +1,7 @@
 import { CollectionConfig, PayloadRequest } from 'payload'
 import { syncStudentsFamily, validateFamilyCode } from './hooks/family'
+import { normalizeUserRole } from '@/lib/user'
+import { hasMatchRole } from '@/utils/lib'
 
 const FamilyWriteAccess = ({ req }: { req: PayloadRequest }) =>
   Boolean(req.user?.collection === 'admins')
@@ -7,7 +9,19 @@ const FamilyWriteAccess = ({ req }: { req: PayloadRequest }) =>
 export const Families: CollectionConfig = {
   slug: 'families',
   access: {
-    read: (): boolean => true,
+    read: ({ req }: { req: PayloadRequest }) => {
+      if (!req.user) return false
+      if (req.user.collection === 'admins') return true
+
+      const userRole = normalizeUserRole(req.user.role)
+      if (req.user.collection === 'users' && hasMatchRole(userRole, ['super'])) return true
+
+      return {
+        parents: {
+          contains: req.user.id,
+        },
+      }
+    },
     create: FamilyWriteAccess,
     delete: FamilyWriteAccess,
     update: FamilyWriteAccess,
