@@ -45,6 +45,10 @@ export default buildConfig({
       collections: {
         media: {
           prefix: process.env.S3_PREFIX || 'development',
+          disablePayloadAccessControl: true, // Required to bypass the API proxy
+          generateFileURL: ({ filename, prefix }) => {
+            return `https://${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com/${prefix}/${filename}`
+          },
         },
       },
       bucket: process.env.S3_BUCKET || '',

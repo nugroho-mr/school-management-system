@@ -38,8 +38,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import clsx from 'clsx'
-import dayjs from 'dayjs'
-import 'dayjs/locale/id'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 
 import { CiViewList } from 'react-icons/ci'
 import { FaPlus } from 'react-icons/fa6'
@@ -182,7 +182,7 @@ const DailyReportList = () => {
             return (
               <li key={section.dateKey}>
                 <h2 className="mb-4 text-sm font-bold text-secondary-foreground">
-                  {dayjs(new Date(section.dateKey)).locale('id').format('dddd, DD MMMM YYYY')}
+                  {format(new Date(section.dateKey), 'EEEE, dd MMMM yyyy', { locale: id })}
                 </h2>
                 <div className="rounded-lg border">
                   <Table>

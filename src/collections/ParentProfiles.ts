@@ -1,5 +1,8 @@
-import { CollectionConfig } from 'payload'
+import { CollectionConfig, PayloadRequest } from 'payload'
 import { isUserParent } from './hooks/parentProfile'
+
+const parentProfileWriteAccess = ({ req }: { req: PayloadRequest }) =>
+  Boolean(req.user?.collection === 'admins')
 
 export const ParentProfiles: CollectionConfig = {
   slug: 'parent-profiles',
@@ -9,13 +12,9 @@ export const ParentProfiles: CollectionConfig = {
   },
   access: {
     read: (): boolean => true,
-
-    create: ({ req }): boolean =>
-      Boolean(req.user?.role === 'admin' || req.user?.collection === 'admins'),
-    update: ({ req }): boolean =>
-      Boolean(req.user?.role === 'admin' || req.user?.collection === 'admins'),
-    delete: ({ req }): boolean =>
-      Boolean(req.user?.role === 'admin' || req.user?.collection === 'admins'),
+    create: parentProfileWriteAccess,
+    update: parentProfileWriteAccess,
+    delete: parentProfileWriteAccess,
   },
   fields: [
     {

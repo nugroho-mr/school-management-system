@@ -196,7 +196,7 @@ export interface Admin {
 export interface User {
   id: string;
   name?: string | null;
-  role: string | Role;
+  role: ('teacher' | 'parent' | 'super')[];
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -215,18 +215,6 @@ export interface User {
       }[]
     | null;
   password?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles".
- */
-export interface Role {
-  id: string;
-  value: string;
-  label: string;
-  rank: number;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -284,11 +272,25 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: string;
+  value: string;
+  label: string;
+  rank: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "students".
  */
 export interface Student {
   id: string;
   fullname: string;
+  dateOfBirth: string;
+  gender: 'male' | 'female';
   studentID: string;
   /**
    * Link to the family this student belongs to
@@ -587,6 +589,8 @@ export interface RolesSelect<T extends boolean = true> {
  */
 export interface StudentsSelect<T extends boolean = true> {
   fullname?: T;
+  dateOfBirth?: T;
+  gender?: T;
   studentID?: T;
   family?: T;
   updatedAt?: T;
