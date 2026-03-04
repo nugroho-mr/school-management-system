@@ -35,7 +35,6 @@ const LoginPage = () => {
   })
 
   const onSubmit = (data: z.infer<typeof loginSchema>) => {
-    console.log('Login data:', data)
     setServerError(null)
     startTransition(async () => {
       const res = await loginAction(data)
@@ -52,7 +51,7 @@ const LoginPage = () => {
 
   return (
     <div className="container py-40">
-      <Card className="max-w-[400px] mx-auto">
+      <Card className="max-w-100 mx-auto">
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>Masukkan username/email dan password Anda untuk masuk.</CardDescription>
@@ -78,7 +77,7 @@ const LoginPage = () => {
                         {...field}
                         id="identifier"
                         placeholder="username"
-                        autoComplete="off"
+                        autoComplete="username"
                         disabled={isPending}
                       />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

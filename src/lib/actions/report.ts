@@ -30,27 +30,39 @@ export const submitDailyStudentReport = async (
   isSavingDraft: boolean = false,
   reportId?: string,
 ): Promise<ActionState> => {
+  const MAX_PHOTO_SIZE = 1 * 1024 * 1024 // 1MB
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png']
+
   try {
     const user = await getCurrentUser()
     if (!user) return { ok: false, message: 'Pengguna tidak terotentikasi' }
 
+    const parsed = isSavingDraft
+      ? dailyReportSchema.partial().safeParse(reportData)
+      : dailyReportSchema.safeParse(reportData)
+    if (!parsed.success) {
+      return { ok: false, message: 'Validasi data gagal. Data tidak valid.' }
+    }
+
+    const validatedData = parsed.data
+
     const payload = await getPayloadClient()
 
-    const student = String(reportData.student || '')
-    const date = String(reportData.date || '')
-    const note = String(reportData.note || '')
-    const reportType = String(reportData.reportType || '')
-    const photoFile = (reportData.photo as File | null) ?? null
-    const removePhoto = reportData.removePhoto
+    const student = String(validatedData.student || '')
+    const date = String(validatedData.date || '')
+    const note = String(validatedData.note || '')
+    const reportType = String(validatedData.reportType || '')
+    const photoFile = (validatedData.photo as File | null) ?? null
+    const removePhoto = validatedData.removePhoto
 
     if (!isSavingDraft) {
       const existingReport = await payload.find({
         collection: dailyReportSlug,
         limit: 1,
         where: {
-          student: { equals: String(reportData.student || '') },
-          date: { equals: String(reportData.date || '') },
-          reportType: { equals: String(reportData.reportType || '') },
+          student: { equals: student },
+          date: { equals: date },
+          reportType: { equals: reportType },
           id: {
             not_equals: reportId,
           },
@@ -58,19 +70,15 @@ export const submitDailyStudentReport = async (
       })
 
       if (existingReport.totalDocs > 0) {
-        const student = (await payload.findByID({
+        const targetStudent = (await payload.findByID({
           collection: studentSlug,
-          id: reportData.student,
+          id: student,
           depth: 5,
         })) as Student
         return {
           ok: false,
-          message: `Laporan ${reportData.reportType === 'daily' ? 'LGA' : 'montessori'} ${student.fullname} untuk tanggal ${format(new Date(reportData.date), 'dd MMMM yyyy', { locale: id })} sudah ada.`,
+          message: `Laporan ${reportType === 'daily' ? 'LGA' : 'montessori'} ${targetStudent.fullname} untuk tanggal ${format(new Date(date), 'dd MMMM yyyy', { locale: id })} sudah ada.`,
         }
-      }
-
-      if (!student || !date || !note || !reportType) {
-        return { ok: false, message: 'Data wajib belum diisi' }
       }
     }
 
@@ -78,6 +86,15 @@ export const submitDailyStudentReport = async (
 
     if (photoFile && photoFile.size > 0) {
       // Convert Web File -> Buffer
+      if (photoFile.size > MAX_PHOTO_SIZE) {
+        return { ok: false, message: 'Ukuran foto terlalu besar. Maksimal 1MB.' }
+      }
+      if (!ALLOWED_MIME_TYPES.includes(photoFile.type)) {
+        return {
+          ok: false,
+          message: 'Tipe file tidak didukung. Hanya JPEG atau PNG yang diperbolehkan.',
+        }
+      }
       const arrayBuffer = await photoFile.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
 
@@ -138,10 +155,12 @@ export const submitDailyStudentReport = async (
 }
 
 export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
+  const MAX_LIMIT = 500
+  const limit = Math.min(args.limit ?? MAX_LIMIT, MAX_LIMIT)
   const payload = await getPayloadClient()
   const res = await payload.find({
     collection: DailyReports.slug as CollectionSlug,
-    limit: args.limit ?? 999999,
+    limit,
     sort: ['-date'],
     where: {
       and: [
@@ -157,12 +176,13 @@ export const fetchDailyReportsInRange = async (args: FetchWeekArgs) => {
         },
       ],
     },
-    depth: 3,
+    depth: 1,
   })
 
   return {
     docs: res.docs as unknown as DailyReport[],
     totalDocs: res.totalDocs,
+    hasMore: res.totalDocs > limit,
   }
 }
 

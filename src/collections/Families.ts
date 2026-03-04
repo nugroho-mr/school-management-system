@@ -14,7 +14,7 @@ export const Families: CollectionConfig = {
       if (req.user.collection === 'admins') return true
 
       const userRole = normalizeUserRole(req.user.role)
-      if (req.user.collection === 'users' && hasMatchRole(userRole, ['super'])) return true
+      if (req.user.collection === 'users' && hasMatchRole(['super'], userRole)) return true
 
       return {
         parents: {

@@ -11,7 +11,12 @@ export function closestPreviousMonday(d: Date): Date {
 export const dateStringISO = (date?: string): string => {
   const today = date ? new Date(date) : new Date()
   if (isNaN(today.getTime())) {
-    throw new Error(`Invalid date string: ${date}`)
+    console.warn(`Invalid date string: ${date}, using current date instead.`)
+    const fallback = new Date()
+    const year = fallback.getFullYear()
+    const month = String(fallback.getMonth() + 1).padStart(2, '0')
+    const day = String(fallback.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
   const year = today.getFullYear()
   const month = String(today.getMonth() + 1).padStart(2, '0')

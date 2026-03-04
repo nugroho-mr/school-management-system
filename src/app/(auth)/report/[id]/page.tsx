@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { DailyReports } from '@/collections/DailyReports'
 import DailyReportForm from '@/components/forms/dailyReportForm/DailyReportForm'
 import ContentHeader from '@/components/layout/ContentHeader'
@@ -7,12 +8,26 @@ import { CollectionSlug } from 'payload'
 
 const page = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
+
+  if (!id || typeof id !== 'string' || id.trim().length < 1) {
+    notFound()
+  }
   const payload = await getPayloadClient()
 
-  const report = (await payload.findByID({
-    collection: DailyReports.slug as CollectionSlug,
-    id,
-  })) as DailyReport
+  let report: DailyReport
+
+  try {
+    report = (await payload.findByID({
+      collection: DailyReports.slug as CollectionSlug,
+      id,
+    })) as DailyReport
+  } catch (error) {
+    notFound()
+  }
+
+  if (!report) {
+    notFound()
+  }
 
   const statusBadge =
     report._status === 'draft'

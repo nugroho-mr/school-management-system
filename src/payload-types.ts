@@ -71,7 +71,6 @@ export interface Config {
     admins: Admin;
     users: User;
     media: Media;
-    roles: Role;
     students: Student;
     'daily-reports': DailyReport;
     'parent-profiles': ParentProfile;
@@ -86,7 +85,6 @@ export interface Config {
     admins: AdminsSelect<false> | AdminsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    roles: RolesSelect<false> | RolesSelect<true>;
     students: StudentsSelect<false> | StudentsSelect<true>;
     'daily-reports': DailyReportsSelect<false> | DailyReportsSelect<true>;
     'parent-profiles': ParentProfilesSelect<false> | ParentProfilesSelect<true>;
@@ -272,18 +270,6 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles".
- */
-export interface Role {
-  id: string;
-  value: string;
-  label: string;
-  rank: number;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "students".
  */
 export interface Student {
@@ -387,10 +373,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: string | Media;
-      } | null)
-    | ({
-        relationTo: 'roles';
-        value: string | Role;
       } | null)
     | ({
         relationTo: 'students';
@@ -571,17 +553,6 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles_select".
- */
-export interface RolesSelect<T extends boolean = true> {
-  value?: T;
-  label?: T;
-  rank?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

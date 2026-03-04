@@ -3,22 +3,41 @@ import {
   type CollectionAfterChangeHook,
   ValidationError,
 } from 'payload'
+import crypto from 'crypto'
 
 const makeFamilyCode = (): string => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  const codeLength = 5
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  const familyCodeLength = 6
+  const bytes = crypto.randomBytes(familyCodeLength)
   let result = ''
-  const charactersLength = characters.length
-  for (let i = 0; i < codeLength; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  for (let i = 0; i < familyCodeLength; i++) {
+    result += characters[bytes[i] % characters.length]
   }
   return `CW-${result}`
 }
 
 // Create a unique family code if not provided during creation or update of a Family document
-export const validateFamilyCode: CollectionBeforeValidateHook = async ({ data }) => {
+export const validateFamilyCode: CollectionBeforeValidateHook = async ({ data, req }) => {
   if (data && !data.familyCode) {
-    data.familyCode = makeFamilyCode()
+    let code: string
+    let attempts = 0
+
+    do {
+      code = makeFamilyCode()
+      const existing = await req.payload.find({
+        collection: 'families',
+        where: { familyCode: { equals: code } },
+        limit: 1,
+      })
+      if (existing.totalDocs === 0) break
+      attempts++
+    } while (attempts < 5)
+    if (attempts === 5) {
+      throw new Error(
+        'Failed to generate a unique family code after multiple attempts. Please try again.',
+      )
+    }
+    data.familyCode = code
   }
   return data
 }
@@ -50,7 +69,6 @@ export const syncStudentsFamily: CollectionAfterChangeHook = async ({ doc, previ
     const conflicts = addedStudents.docs
       .map((s: { id: string }) => {
         const existingFamilyId = getRelId((s as any).family)
-        console.log(`Student ${s.id} currently belongs to family ${existingFamilyId}`)
         if (existingFamilyId && existingFamilyId !== familyId) {
           return { studentId: s.id, existingFamilyId }
         }
@@ -71,7 +89,7 @@ export const syncStudentsFamily: CollectionAfterChangeHook = async ({ doc, previ
 
   await Promise.all(
     addedStudentIds.map(async (studentId) => {
-      req.payload.update({
+      await req.payload.update({
         collection: 'students',
         id: studentId,
         data: {
@@ -84,7 +102,7 @@ export const syncStudentsFamily: CollectionAfterChangeHook = async ({ doc, previ
 
   await Promise.all(
     removedStudentIds.map(async (studentId) => {
-      req.payload.update({
+      await req.payload.update({
         collection: 'students',
         id: studentId,
         data: {

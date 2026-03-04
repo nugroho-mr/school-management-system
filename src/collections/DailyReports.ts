@@ -48,6 +48,10 @@ export const DailyReports: CollectionConfig = {
           familyRes?.docs.flatMap((f: any) =>
             (f.students || []).map((s: any) => (typeof s === 'string' ? s : s.id)),
           ) || []
+
+        if (studentIds.length === 0) {
+          return false
+        }
       } catch (error) {
         console.error('Error fetching family data:', error)
       }

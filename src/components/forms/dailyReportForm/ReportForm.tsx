@@ -73,7 +73,7 @@ export const ReportForm = ({
       const currentStudent = students.find((student) => student.id === studentId)
       return currentStudent?.fullname || ''
     })
-  }, [])
+  }, [defaultValues?.student, students])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(dailyReportSchema),
@@ -100,13 +100,14 @@ export const ReportForm = ({
     showProcessOverlay()
     const { getValues } = form
     const currentData = getValues()
+
     try {
       const res = await submitDailyStudentReport(currentData, true, defaultValues?.id)
       if (!res.ok) {
         toast.error(res.message)
         return
       }
-      toast.success('Berhasil mengimpan laporan sebagai draf.')
+      toast.success('Berhasil menyimpan laporan sebagai draf.')
       if (defaultValues?.id) {
         router.refresh()
       } else {
@@ -366,12 +367,20 @@ export const ReportForm = ({
           </li>
         </ul>
         <DialogFooter>
-          <Button variant="outline" onClick={handleSaveDraft}>
-            {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
-          </Button>
-          <Button type="submit" form="new-daily-report-form">
-            {defaultValues?.id && defaultValues?._status === 'published' ? 'Perbarui' : 'Terbitkan'}
-          </Button>
+          {form.formState.isSubmitting ? (
+            <p className="text-sm text-gray-500 mr-auto">Menyimpan laporan...</p>
+          ) : (
+            <>
+              <Button variant="outline" onClick={handleSaveDraft}>
+                {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
+              </Button>
+              <Button type="submit" form="new-daily-report-form">
+                {defaultValues?.id && defaultValues?._status === 'published'
+                  ? 'Perbarui'
+                  : 'Terbitkan'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

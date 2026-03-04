@@ -1,3 +1,5 @@
+import { normalizeUserRole } from '@/lib/user'
+import { hasMatchRole } from '@/utils/lib'
 import { ValidationError } from 'payload'
 import type { CollectionBeforeValidateHook } from 'payload'
 
@@ -13,10 +15,8 @@ export const isUserParent: CollectionBeforeValidateHook = async ({ data, req }) 
     depth: 1,
   })
 
-  const userIsParent =
-    typeof user?.role === 'string' ? user.role === 'parent' : user?.role?.includes('parent')
-
-  if (!userIsParent) {
+  const roles = normalizeUserRole(user?.role || [])
+  if (!hasMatchRole(['parent'], roles)) {
     throw new ValidationError({
       errors: [
         {
