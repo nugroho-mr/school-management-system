@@ -1,4 +1,5 @@
 import { getPayloadClient } from '@/lib/payload'
+import { Student } from '@/payload-types'
 
 export const getCurrentStudents = async () => {
   const payload = await getPayloadClient()
@@ -12,5 +13,5 @@ export const getCurrentStudents = async () => {
     },
   })
 
-  return students.docs
+  return students.docs as Student[]
 }
