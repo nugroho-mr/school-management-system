@@ -3,6 +3,7 @@
 import { useTransition, useState } from 'react'
 import * as z from 'zod'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   Card,
   CardContent,
@@ -25,6 +26,7 @@ const LoginPage = () => {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isShowPassword, setIsShowPassword] = useState(false)
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -50,11 +52,22 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="container py-40">
-      <Card className="max-w-100 mx-auto">
+    <div className="container py-20">
+      <Card className="max-w-100 mx-auto shadow-2xl">
         <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Masukkan username/email dan password Anda untuk masuk.</CardDescription>
+          <Image
+            src="/images/logo-horizontal.png"
+            alt="Logo"
+            width={1080}
+            height={317}
+            className="w-80 mx-auto mb-4"
+          />
+          <CardTitle className="text-primary text-center">
+            Selamat datang di Crescent Wonder
+          </CardTitle>
+          <CardDescription className="text-center">
+            Masukkan username/email dan password Anda untuk masuk.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {serverError && (
@@ -72,7 +85,7 @@ const LoginPage = () => {
                 render={({ field, fieldState }) => {
                   return (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="identifier">Username</FieldLabel>
+                      <FieldLabel htmlFor="identifier">Username/Email</FieldLabel>
                       <Input
                         {...field}
                         id="identifier"
@@ -93,7 +106,7 @@ const LoginPage = () => {
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="password">Password</FieldLabel>
                       <Input
-                        type="password"
+                        type={isShowPassword ? 'text' : 'password'}
                         {...field}
                         id="password"
                         placeholder="password"
@@ -105,11 +118,25 @@ const LoginPage = () => {
                   )
                 }}
               />
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="show-password"
+                  onChange={() => setIsShowPassword((prev) => !prev)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="show-password"
+                  className="text-sm text-muted-foreground cursor-pointer italic"
+                >
+                  tampilkan password
+                </label>
+              </div>
             </div>
           </form>
         </CardContent>
         <CardFooter>
-          <Button type="submit" form="login-form" disabled={isPending}>
+          <Button type="submit" form="login-form" disabled={isPending} className="w-full">
             Login
           </Button>
         </CardFooter>
