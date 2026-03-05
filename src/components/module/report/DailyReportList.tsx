@@ -38,8 +38,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import clsx from 'clsx'
-import { format, set } from 'date-fns'
-import { id, se } from 'date-fns/locale'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 
 import { CiViewList } from 'react-icons/ci'
 import { FaPlus } from 'react-icons/fa6'
@@ -63,11 +63,9 @@ const filterFormSchema = z.object({
 const DailyReportList = () => {
   const [sections, setSections] = useState<DailyReportSection[] | null>(null)
   const [displayedReport, setDisplayedReport] = useState<DailyReport[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const getReport = async (startDate: string, endDate: string) => {
-    setError(null)
     setIsLoading(true)
     try {
       const initialReport = await fetchDailyReportsInRange({
@@ -77,8 +75,7 @@ const DailyReportList = () => {
       setDisplayedReport(initialReport.docs as unknown as DailyReport[])
     } catch (err) {
       console.error('Error fetching reports:', err)
-      setError('Gagal memuat laporan. Silakan coba lagi.')
-      toast.error(error || 'Gagal memuat laporan. Silakan coba lagi.')
+      toast.error('Gagal memuat laporan. Silakan coba lagi.')
       setDisplayedReport([])
     } finally {
       setIsLoading(false)

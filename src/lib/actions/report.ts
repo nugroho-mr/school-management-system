@@ -246,7 +246,7 @@ export const fetchStudentReportAvailability = async (month: string) => {
           },
           {
             date: {
-              less_than_equal: end,
+              less_than: end,
             },
           },
         ],

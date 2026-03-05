@@ -17,8 +17,16 @@ const makeFamilyCode = (): string => {
 }
 
 // Create a unique family code if not provided during creation or update of a Family document
-export const validateFamilyCode: CollectionBeforeValidateHook = async ({ data, req }) => {
-  if (data && !data.familyCode) {
+export const validateFamilyCode: CollectionBeforeValidateHook = async ({
+  data,
+  req,
+  operation,
+  originalDoc,
+}) => {
+  if (
+    (operation === 'create' && data && !data.familyCode) ||
+    (operation === 'update' && data && !data.familyCode && originalDoc && !originalDoc.familyCode)
+  ) {
     let code: string
     let attempts = 0
 

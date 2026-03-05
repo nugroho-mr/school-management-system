@@ -43,7 +43,11 @@ export const Families: CollectionConfig = {
       relationTo: 'users',
       hasMany: true,
       required: true,
-      filterOptions: { 'role.value': { equals: 'parent' } },
+      filterOptions: {
+        role: {
+          contains: 'parent',
+        },
+      },
     },
     {
       name: 'students',

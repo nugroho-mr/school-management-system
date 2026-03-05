@@ -327,13 +327,13 @@
 
   --font-sans: Nunito, sans-serif;
   --font-serif: Merriweather, serif;
-  --font-mono:
+  --font-mono-family:
     'Geist Mono', 'Geist Mono Fallback', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
 
   --font-base: var(--font-sans);
   --font-display: var(--font-serif);
-  --font-mono: var(--font-mono);
+  --font-mono: var(--font-mono-family);
 
   --radius: 1rem;
 
@@ -424,7 +424,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-mono: var(--font-mono-family);
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);

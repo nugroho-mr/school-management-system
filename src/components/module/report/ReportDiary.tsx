@@ -245,10 +245,10 @@ const ReportCard = ({ title, photo, note }: { title: string; photo?: Media; note
     </CardHeader>
     <CardContent>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-8">
-        {photo && (
+        {photo?.url && (
           <div className="sm:w-1/4">
             <Image
-              src={typeof photo === 'string' ? photo : photo.url || ''}
+              src={typeof photo === 'string' ? photo : photo.url}
               alt="Gambar laporan"
               width={photo.sizes?.thumbnail?.width || 300}
               height={photo.sizes?.thumbnail?.height || 300}
