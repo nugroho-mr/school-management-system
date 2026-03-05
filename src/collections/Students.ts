@@ -1,8 +1,13 @@
-import { type CollectionConfig } from 'payload'
+import { type PayloadRequest, type CollectionConfig } from 'payload'
+import { preventMultipleFamily } from './hooks/student'
+import { normalizeUserRole } from '@/lib/user'
+import { hasMatchRole } from '@/utils/lib'
 
-const isValidUsernameSchema = (usr: string) => {
-  const regex = /^[a-zA-Z0-9_-]*$/
-  return regex.test(usr)
+const studentWriteAccess = ({ req }: { req: PayloadRequest }) => {
+  const normalizedRoles = normalizeUserRole(req.user?.role)
+  return Boolean(
+    hasMatchRole(['super', 'teacher'], normalizedRoles) || req.user?.collection === 'admins',
+  )
 }
 
 export const Students: CollectionConfig = {
@@ -12,24 +17,9 @@ export const Students: CollectionConfig = {
   },
   access: {
     read: ({ req }) => Boolean(req.user),
-    create: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
-    update: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
-    delete: ({ req }) =>
-      Boolean(
-        req.user?.role === 'admin' ||
-          req.user?.role === 'teacher' ||
-          req.user?.collection === 'admins',
-      ),
+    create: studentWriteAccess,
+    update: studentWriteAccess,
+    delete: studentWriteAccess,
   },
   fields: [
     {
@@ -39,6 +29,22 @@ export const Students: CollectionConfig = {
       required: true,
     },
     {
+      name: 'dateOfBirth',
+      type: 'date',
+      label: 'Date of Birth',
+      required: true,
+    },
+    {
+      name: 'gender',
+      type: 'select',
+      label: 'Gender',
+      required: true,
+      options: [
+        { label: 'Laki-laki', value: 'male' },
+        { label: 'Perempuan', value: 'female' },
+      ],
+    },
+    {
       name: 'studentID',
       type: 'text',
       label: 'Student ID',
@@ -46,5 +52,16 @@ export const Students: CollectionConfig = {
       unique: true,
       index: true,
     },
+    {
+      name: 'family',
+      type: 'relationship',
+      relationTo: 'families',
+      required: false,
+      index: true,
+      admin: { description: 'Link to the family this student belongs to', readOnly: true },
+    },
   ],
+  hooks: {
+    beforeValidate: [preventMultipleFamily],
+  },
 }

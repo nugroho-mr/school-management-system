@@ -7,8 +7,8 @@ import { dailyReportSchema } from '@/schemas/report'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { IoClose } from 'react-icons/io5'
 import Image from 'next/image'
-import dayjs from 'dayjs'
-import 'dayjs/locale/id'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 import {
   Form,
   FormControl,
@@ -73,7 +73,7 @@ export const ReportForm = ({
       const currentStudent = students.find((student) => student.id === studentId)
       return currentStudent?.fullname || ''
     })
-  }, [])
+  }, [defaultValues?.student, students])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(dailyReportSchema),
@@ -100,13 +100,14 @@ export const ReportForm = ({
     showProcessOverlay()
     const { getValues } = form
     const currentData = getValues()
+
     try {
       const res = await submitDailyStudentReport(currentData, true, defaultValues?.id)
       if (!res.ok) {
         toast.error(res.message)
         return
       }
-      toast.success('Berhasil mengimpan laporan sebagai draf.')
+      toast.success('Berhasil menyimpan laporan sebagai draf.')
       if (defaultValues?.id) {
         router.refresh()
       } else {
@@ -279,9 +280,9 @@ export const ReportForm = ({
                         <p className="text-xs font-bold text-center text-gray-700 mb-2">
                           {imagePreview ? 'preview' : 'foto saat ini'}
                         </p>
-                        <div className="relative w-full max-w-[200px] h-[200px] mx-auto">
+                        <div className="relative w-full max-w-50 h-50 mx-auto">
                           <button
-                            className="hover:cursor-pointer text-gray-500 border border-gray-500 p-0 inline-flex items-center text-xs gap-1 whitespace-nowrap bg-white px-2 py-1 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors absolute top-2 right-2 z-[2]"
+                            className="hover:cursor-pointer text-gray-500 border border-gray-500 p-0 inline-flex items-center text-xs gap-1 whitespace-nowrap bg-white px-2 py-1 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors absolute top-2 right-2 z-2"
                             onClick={(e) => {
                               e.preventDefault()
                               if (imagePreview) {
@@ -351,7 +352,8 @@ export const ReportForm = ({
             Nama Siswa: <b>{selectedStudentName}</b>
           </li>
           <li>
-            Tanggal: <b>{dayjs(form.getValues().date).locale('id-ID').format('DD MMMM YYYY')}</b>
+            Tanggal:{' '}
+            <b>{format(new Date(form.getValues().date), 'dd MMMM yyyy', { locale: id })}</b>
           </li>
           <li>
             Laporan:{' '}
@@ -365,12 +367,20 @@ export const ReportForm = ({
           </li>
         </ul>
         <DialogFooter>
-          <Button variant="outline" onClick={handleSaveDraft}>
-            {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
-          </Button>
-          <Button type="submit" form="new-daily-report-form">
-            {defaultValues?.id && defaultValues?._status === 'published' ? 'Perbarui' : 'Terbitkan'}
-          </Button>
+          {form.formState.isSubmitting ? (
+            <p className="text-sm text-gray-500 mr-auto">Menyimpan laporan...</p>
+          ) : (
+            <>
+              <Button variant="outline" onClick={handleSaveDraft}>
+                {defaultValues?._status === 'published' ? 'Ubah menjadi draf' : 'Simpan draf'}
+              </Button>
+              <Button type="submit" form="new-daily-report-form">
+                {defaultValues?.id && defaultValues?._status === 'published'
+                  ? 'Perbarui'
+                  : 'Terbitkan'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

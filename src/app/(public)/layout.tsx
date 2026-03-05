@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import '@/app/styles.css'
+import './styles.css'
 
 export const metadata: Metadata = {
   title: 'Crescent Wonder School Management System',

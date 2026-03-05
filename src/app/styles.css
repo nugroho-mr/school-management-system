@@ -1,14 +1,13 @@
-
 @import 'tailwindcss';
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 @plugin '@tailwindcss/typography';
 
 @theme {
-  --font-base: 'Apparat', sans-serif;
+  /* --font-base: 'Apparat', sans-serif;
   --font-display: 'Priori Serif', serif;
-  --font-mono: 'Roboto Mono', monospace;
+  --font-mono: 'Roboto Mono', monospace; */
 
   --color-black: #0e0e0e;
   --color-if-neon-green: #8eff00;

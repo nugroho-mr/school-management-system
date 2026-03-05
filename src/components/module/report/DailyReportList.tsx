@@ -38,8 +38,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import clsx from 'clsx'
-import dayjs from 'dayjs'
-import 'dayjs/locale/id'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
 
 import { CiViewList } from 'react-icons/ci'
 import { FaPlus } from 'react-icons/fa6'
@@ -51,6 +51,7 @@ import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import z from 'zod'
+import { toast } from 'sonner'
 
 const filterFormSchema = z.object({
   startDate: z.string(),
@@ -65,11 +66,20 @@ const DailyReportList = () => {
   const [isLoading, setIsLoading] = useState(true)
 
   const getReport = async (startDate: string, endDate: string) => {
-    const initialReport = await fetchDailyReportsInRange({
-      startISO: startDate,
-      endISO: endDate,
-    })
-    setDisplayedReport(initialReport.docs as unknown as DailyReport[])
+    setIsLoading(true)
+    try {
+      const initialReport = await fetchDailyReportsInRange({
+        startISO: startDate,
+        endISO: endDate,
+      })
+      setDisplayedReport(initialReport.docs as unknown as DailyReport[])
+    } catch (err) {
+      console.error('Error fetching reports:', err)
+      toast.error('Gagal memuat laporan. Silakan coba lagi.')
+      setDisplayedReport([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -182,7 +192,7 @@ const DailyReportList = () => {
             return (
               <li key={section.dateKey}>
                 <h2 className="mb-4 text-sm font-bold text-secondary-foreground">
-                  {dayjs(new Date(section.dateKey)).locale('id').format('dddd, DD MMMM YYYY')}
+                  {format(new Date(section.dateKey), 'EEEE, dd MMMM yyyy', { locale: id })}
                 </h2>
                 <div className="rounded-lg border">
                   <Table>

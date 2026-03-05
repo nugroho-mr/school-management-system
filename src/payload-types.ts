@@ -71,9 +71,10 @@ export interface Config {
     admins: Admin;
     users: User;
     media: Media;
-    roles: Role;
     students: Student;
     'daily-reports': DailyReport;
+    'parent-profiles': ParentProfile;
+    families: Family;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -84,9 +85,10 @@ export interface Config {
     admins: AdminsSelect<false> | AdminsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    roles: RolesSelect<false> | RolesSelect<true>;
     students: StudentsSelect<false> | StudentsSelect<true>;
     'daily-reports': DailyReportsSelect<false> | DailyReportsSelect<true>;
+    'parent-profiles': ParentProfilesSelect<false> | ParentProfilesSelect<true>;
+    families: FamiliesSelect<false> | FamiliesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -192,7 +194,7 @@ export interface Admin {
 export interface User {
   id: string;
   name?: string | null;
-  role: string | Role;
+  role: ('teacher' | 'parent' | 'super')[];
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -211,18 +213,6 @@ export interface User {
       }[]
     | null;
   password?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles".
- */
-export interface Role {
-  id: string;
-  value: string;
-  label: string;
-  rank: number;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -285,7 +275,28 @@ export interface Media {
 export interface Student {
   id: string;
   fullname: string;
+  dateOfBirth: string;
+  gender: 'male' | 'female';
   studentID: string;
+  /**
+   * Link to the family this student belongs to
+   */
+  family?: (string | null) | Family;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "families".
+ */
+export interface Family {
+  id: string;
+  /**
+   * A unique code to identify the family
+   */
+  familyCode: string;
+  parents: (string | User)[];
+  students: (string | Student)[];
   updatedAt: string;
   createdAt: string;
 }
@@ -312,6 +323,20 @@ export interface DailyReport {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parent-profiles".
+ */
+export interface ParentProfile {
+  id: string;
+  /**
+   * Link to the user account for this parent
+   */
+  user: string | User;
+  fullName: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -350,16 +375,20 @@ export interface PayloadLockedDocument {
         value: string | Media;
       } | null)
     | ({
-        relationTo: 'roles';
-        value: string | Role;
-      } | null)
-    | ({
         relationTo: 'students';
         value: string | Student;
       } | null)
     | ({
         relationTo: 'daily-reports';
         value: string | DailyReport;
+      } | null)
+    | ({
+        relationTo: 'parent-profiles';
+        value: string | ParentProfile;
+      } | null)
+    | ({
+        relationTo: 'families';
+        value: string | Family;
       } | null);
   globalSlug?: string | null;
   user:
@@ -527,22 +556,14 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "roles_select".
- */
-export interface RolesSelect<T extends boolean = true> {
-  value?: T;
-  label?: T;
-  rank?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "students_select".
  */
 export interface StudentsSelect<T extends boolean = true> {
   fullname?: T;
+  dateOfBirth?: T;
+  gender?: T;
   studentID?: T;
+  family?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -560,6 +581,27 @@ export interface DailyReportsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parent-profiles_select".
+ */
+export interface ParentProfilesSelect<T extends boolean = true> {
+  user?: T;
+  fullName?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "families_select".
+ */
+export interface FamiliesSelect<T extends boolean = true> {
+  familyCode?: T;
+  parents?: T;
+  students?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

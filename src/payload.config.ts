@@ -10,12 +10,19 @@ import sharp from 'sharp'
 import { Admins } from './collections/Admins'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
-import { Roles } from './collections/Roles'
 import { Students } from './collections/Students'
 import { DailyReports } from './collections/DailyReports'
+import { ParentProfiles } from './collections/ParentProfiles'
+import { Families } from './collections/Families'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+const PAYLOAD_SECRET = process.env.PAYLOAD_SECRET
+if (!PAYLOAD_SECRET) throw new Error('PAYLOAD_SECRET environment variable is required')
+
+const DATABASE_URI = process.env.DATABASE_URI
+if (!DATABASE_URI) throw new Error('DATABASE_URI environment variable is required')
 
 export default buildConfig({
   admin: {
@@ -27,14 +34,14 @@ export default buildConfig({
       defaultTimezone: 'Asia/Jakarta',
     },
   },
-  collections: [Admins, Users, Media, Roles, Students, DailyReports],
+  collections: [Admins, Users, Media, Students, DailyReports, ParentProfiles, Families],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: PAYLOAD_SECRET,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: mongooseAdapter({
-    url: process.env.DATABASE_URI || '',
+    url: DATABASE_URI,
   }),
   sharp,
   plugins: [
@@ -43,6 +50,10 @@ export default buildConfig({
       collections: {
         media: {
           prefix: process.env.S3_PREFIX || 'development',
+          disablePayloadAccessControl: true, // Required to bypass the API proxy
+          generateFileURL: ({ filename, prefix }) => {
+            return `https://${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com/${prefix}/${filename}`
+          },
         },
       },
       bucket: process.env.S3_BUCKET || '',
