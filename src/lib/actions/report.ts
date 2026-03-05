@@ -194,10 +194,10 @@ export const fetchStudentReportAvailability = async (month: string) => {
 
   const isAdministrator = user.collection === 'admins'
 
-  const permitedRole = ['parent']
-  const isPermitedUser = hasMatchRole(permitedRole, normalizeUserRole(user?.role))
+  const permittedRole = ['parent']
+  const isPermittedUser = hasMatchRole(permittedRole, normalizeUserRole(user?.role))
 
-  if (!isAdministrator && !isPermitedUser) {
+  if (!isAdministrator && !isPermittedUser) {
     return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
   }
 
@@ -288,10 +288,10 @@ export const fetchStudentReportByDay = async (day: string) => {
 
   const isAdministrator = user.collection === 'admins'
 
-  const permitedRole = ['parent']
-  const isPermitedUser = hasMatchRole(permitedRole, normalizeUserRole(user?.role))
+  const permittedRole = ['parent']
+  const isPermittedUser = hasMatchRole(permittedRole, normalizeUserRole(user?.role))
 
-  if (!isAdministrator && !isPermitedUser) {
+  if (!isAdministrator && !isPermittedUser) {
     return { ok: false, message: 'Pengguna tidak terotorisasi untuk mengakses data laporan siswa.' }
   }
 
@@ -337,7 +337,7 @@ export const fetchStudentReportByDay = async (day: string) => {
           },
           {
             date: {
-              less_than_equal: end,
+              less_than: end,
             },
           },
         ],
