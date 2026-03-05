@@ -21,7 +21,7 @@ const parentProfileReadAccess = ({ req }: { req: PayloadRequest }) => {
 
   if (hasMatchRole(['parent'], userRoles)) {
     return {
-      id: {
+      user: {
         equals: req.user.id,
       },
     }
